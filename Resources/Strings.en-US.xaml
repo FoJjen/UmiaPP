@@ -36,7 +36,15 @@
     <sys:String x:Key="TabAta">Variation Orders</sys:String>
 
     <!-- Overview Tab -->
-    <sys:String x:Key="OverviewHeading">Project Status & Key Metrics</sys:String>
+    <sys:String x:Key="SalesCalculation">Sales calculation</sys:String>
+    <sys:String x:Key="SalesPrice">Sales price (SEK)</sys:String>
+    <sys:String x:Key="BudgetedCost">Total budgeted cost (SEK)</sys:String>
+    <sys:String x:Key="SaveSalesCalculation">Save sales calculation</sys:String>
+    <sys:String x:Key="SalesInputHelp">Enter two amounts without thousands separators, at least 0. Use the same VAT basis as the Lube calculation. Click Save to update TG.</sys:String>
+    <sys:String x:Key="CurrentTg">Current TG</sys:String>
+    <sys:String x:Key="TgBasis">TG = (saved sales price − Lube production cost) / sales price × 100. Budgeted cost is not used in current TG. — indicates missing sales price or calculation.</sys:String>
+    <sys:String x:Key="LubeProductionCost">Lube production cost (SEK)</sys:String>
+    <sys:String x:Key="OverviewHeading">Project Status &amp; Key Metrics</sys:String>
     <sys:String x:Key="KeyMetrics">Key Metrics</sys:String>
     <sys:String x:Key="TotalHours">Estimated Hours:</sys:String>
     <sys:String x:Key="TotalMaterial">Material Cost:</sys:String>
@@ -46,22 +54,29 @@
 
     <!-- Lube Tab -->
     <sys:String x:Key="ImportLubeBtn">Import Lube Calculation (.xlsx/.xls)</sys:String>
-    <sys:String x:Key="SubTabKalkyl">Calculation (Summary)</sys:String>
+    <sys:String x:Key="SubTabSammandrag">Calculation Summary (Lubekalk)</sys:String>
+    <sys:String x:Key="SubTabSakvarorSpec">Equipment Specification</sys:String>
+    <sys:String x:Key="SubTabKalkyl">Calculation Sheet (Raw Data)</sys:String>
     <sys:String x:Key="SubTabAnpassning">Project Adjustments</sys:String>
     <sys:String x:Key="SubTabSakvarorMangd">Equipment Quantities</sys:String>
     <sys:String x:Key="SubTabSakvarorOffert">Equipment Quotes</sys:String>
     <sys:String x:Key="SubTabSakvarorLeverans">Delivery Prices</sys:String>
-    <sys:String x:Key="SubTabSakvarorMontage">Installation & Commissioning</sys:String>
+    <sys:String x:Key="SubTabSakvarorMontage">Installation &amp; Commissioning</sys:String>
     <sys:String x:Key="SubTabEjMangd">Non-quantified Tasks</sys:String>
     <sys:String x:Key="SumHours">Total Hours:</sys:String>
     <sys:String x:Key="SumMaterial">Total Material:</sys:String>
     <sys:String x:Key="FilterPlaceholder">Filter rows...</sys:String>
+    <sys:String x:Key="ChooseTabs">Tabs</sys:String>
+    <sys:String x:Key="ChooseTabsTitle">Visible tabs</sys:String>
+    <sys:String x:Key="ChooseTabsTooltip">Choose which tabs to display</sys:String>
 
     <!-- Purchase Tab -->
     <sys:String x:Key="SectionDrawings">Part 1: Drawing List</sys:String>
     <sys:String x:Key="AddDrawing">Add Drawing</sys:String>
     <sys:String x:Key="OpenPdf">Open Drawing</sys:String>
     <sys:String x:Key="SectionComponents">Part 2: Component List from PDF / Bluebeam Revu XML</sys:String>
+    <sys:String x:Key="LoadPdf">Load PDF</sys:String>
+    <sys:String x:Key="NoPdfLoaded">No PDF selected</sys:String>
     <sys:String x:Key="ImportBluebeamXml">Import Bluebeam XML</sys:String>
     <sys:String x:Key="ExportExcel">Export to Excel</sys:String>
     <sys:String x:Key="ExportCsv">Export to CSV</sys:String>
@@ -70,7 +85,7 @@
     <sys:String x:Key="TotalEquipmentCount">Total Equipment/Diffusers:</sys:String>
 
     <!-- ATA Tab -->
-    <sys:String x:Key="AtaHeading">Variation Orders & Change Management</sys:String>
+    <sys:String x:Key="AtaHeading">Variation Orders &amp; Change Management</sys:String>
     <sys:String x:Key="AtaDescription">Functional placeholder view prepared for registration and monitoring of variation orders, change specifications, and client approvals.</sys:String>
     <sys:String x:Key="RegisterAta">Register New Variation Order</sys:String>
 

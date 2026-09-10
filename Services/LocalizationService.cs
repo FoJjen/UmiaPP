@@ -9,6 +9,7 @@ public class AppSettings
 {
     public string Language { get; set; } = "sv-SE";
     public string Theme { get; set; } = "Light";
+    public List<string> HiddenLubeTabs { get; set; } = [];
 }
 
 public interface ILocalizationService

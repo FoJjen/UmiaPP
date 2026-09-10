@@ -57,6 +57,24 @@ public partial class PurchaseTabViewModel : ObservableObject
     [ObservableProperty]
     private string _newFilePath = string.Empty;
 
+    [ObservableProperty]
+    private string _loadedPdfPath = string.Empty;
+
+    [ObservableProperty]
+    private Uri? _loadedPdfUri;
+
+    public bool HasLoadedPdf => !string.IsNullOrWhiteSpace(LoadedPdfPath);
+
+    public string LoadedPdfName => string.IsNullOrWhiteSpace(LoadedPdfPath)
+        ? string.Empty
+        : Path.GetFileName(LoadedPdfPath);
+
+    partial void OnLoadedPdfPathChanged(string value)
+    {
+        OnPropertyChanged(nameof(HasLoadedPdf));
+        OnPropertyChanged(nameof(LoadedPdfName));
+    }
+
     public PurchaseTabViewModel(
         Project project,
         IDataService dataService,
@@ -109,6 +127,38 @@ public partial class PurchaseTabViewModel : ObservableObject
                 NewSheetTitle = Path.GetFileNameWithoutExtension(path);
             }
         }
+    }
+
+    [RelayCommand]
+    private void LoadPdf()
+    {
+        var path = _dialogService.OpenFileDialog("PDF-filer (*.pdf)|*.pdf|Alla filer (*.*)|*.*", "Välj PDF");
+        if (string.IsNullOrEmpty(path))
+            return;
+
+        ShowPdf(path);
+    }
+
+    partial void OnSelectedDrawingChanged(Drawing? value)
+    {
+        if (value != null && !string.IsNullOrWhiteSpace(value.FilePath) &&
+            File.Exists(value.FilePath) &&
+            string.Equals(Path.GetExtension(value.FilePath), ".pdf", StringComparison.OrdinalIgnoreCase))
+        {
+            ShowPdf(value.FilePath);
+        }
+    }
+
+    private void ShowPdf(string path)
+    {
+        if (!File.Exists(path))
+        {
+            _dialogService.ShowError($"Filen kunde inte hittas:\n{path}", "Fil saknas");
+            return;
+        }
+
+        LoadedPdfPath = path;
+        LoadedPdfUri = new Uri(path);
     }
 
     [RelayCommand]

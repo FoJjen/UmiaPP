@@ -8,6 +8,26 @@
             <Border Style="{StaticResource ModernCard}" Margin="0,0,12,0"><StackPanel><TextBlock Text="{DynamicResource DrawingCount}" Foreground="{StaticResource TextSecondaryBrush}"/><TextBlock Text="{Binding DrawingCount}" FontSize="27" FontWeight="SemiBold" Margin="0,6,0,0"/></StackPanel></Border>
             <Border Style="{StaticResource ModernCard}"><StackPanel><TextBlock Text="{DynamicResource ComponentCount}" Foreground="{StaticResource TextSecondaryBrush}"/><TextBlock Text="{Binding ComponentCount}" FontSize="27" FontWeight="SemiBold" Margin="0,6,0,0"/></StackPanel></Border>
         </UniformGrid>
+        <Border Style="{StaticResource ModernCard}" Margin="0,24,0,0">
+            <StackPanel>
+                <TextBlock Text="{DynamicResource CurrentTg}" FontSize="18" FontWeight="SemiBold"/>
+                <TextBlock Text="{Binding CurrentTg, StringFormat={}{0:N1} %, TargetNullValue=—}" FontSize="32" FontWeight="SemiBold" Margin="0,6,0,8"/>
+                <TextBlock Text="{DynamicResource LubeProductionCost}" Foreground="{StaticResource TextSecondaryBrush}"/>
+                <TextBlock Text="{Binding ProductionCost, StringFormat=N2, TargetNullValue=—}"/>
+                <TextBlock Text="{DynamicResource TgBasis}" TextWrapping="Wrap" Margin="0,8,0,0" Foreground="{StaticResource TextSecondaryBrush}"/>
+            </StackPanel>
+        </Border>
+        <Border Style="{StaticResource ModernCard}" Margin="0,24,0,0">
+            <StackPanel>
+                <TextBlock Text="{DynamicResource SalesCalculation}" FontSize="18" FontWeight="SemiBold"/>
+                <TextBlock Text="{DynamicResource SalesPrice}" Margin="0,12,0,4"/>
+                <TextBox Text="{Binding SalesPriceInput, UpdateSourceTrigger=PropertyChanged}" MaxWidth="320" HorizontalAlignment="Left" MinWidth="240"/>
+                <TextBlock Text="{DynamicResource BudgetedCost}" Margin="0,12,0,4"/>
+                <TextBox Text="{Binding BudgetedCostInput, UpdateSourceTrigger=PropertyChanged}" MaxWidth="320" HorizontalAlignment="Left" MinWidth="240"/>
+                <TextBlock Text="{DynamicResource SalesInputHelp}" TextWrapping="Wrap" Margin="0,8,0,12" Foreground="{StaticResource TextSecondaryBrush}"/>
+                <Button Content="{DynamicResource SaveSalesCalculation}" Command="{Binding SaveSalesCalculationCommand}" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"/>
+            </StackPanel>
+        </Border>
         <Border Style="{StaticResource ModernCard}" Margin="0,24,0,0"><StackPanel><TextBlock Text="Kommande uppföljning" FontSize="18" FontWeight="SemiBold"/><TextBlock Text="Grafer för budget, prognos, arbetade timmar och inköpsstatus visas här när relevanta data har registrerats." Foreground="{StaticResource TextSecondaryBrush}" Margin="0,8,0,0"/></StackPanel></Border>
     </StackPanel></ScrollViewer>
 </UserControl>

@@ -19,7 +19,7 @@ public class LocalDataService : IDataService
     public async Task InitializeAsync()
     {
         await using var context = _contextFactory();
-        await context.Database.EnsureCreatedAsync();
+        await SqliteSchemaSynchronizer.SynchronizeAsync(context);
 
         // Skapa initial demodata om inga projekt finns
         if (!await context.Projects.AnyAsync())

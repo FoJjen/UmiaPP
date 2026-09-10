@@ -43,10 +43,16 @@ public partial class ActiveProjectViewModel : ObservableObject
         _dialogService = dialogService;
         _onBackToList = onBackToList;
 
-        OverviewTab = new OverviewTabViewModel(project);
+        OverviewTab = new OverviewTabViewModel(project, dataService, dialogService);
         LubeTab = new LubeCalculationTabViewModel(project, dataService, lubeImport, dialogService);
         PurchaseTab = new PurchaseTabViewModel(project, dataService, bluebeamParser, exportService, dialogService);
         AtaTab = new AtaTabViewModel(project, dialogService);
+    }
+
+    partial void OnSelectedTabIndexChanged(int value)
+    {
+        if (value == 0)
+            OverviewTab.RefreshMetrics();
     }
 
     public void Refresh(Project project)

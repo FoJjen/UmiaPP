@@ -74,19 +74,24 @@ public partial class MainViewModel : ObservableObject
             _bluebeamParser,
             _exportService,
             _dialogService,
-            ReturnToProjectList);
+            BackToProjectList);
 
         CurrentView = ActiveProjectVm;
     }
 
     [RelayCommand]
-    public async void ReturnToProjectList()
+    public async Task ReturnToProjectList()
     {
         HasActiveProject = false;
         CurrentProject = null;
         UpdateActiveProjectTitle();
         CurrentView = ProjectListVm;
         await ProjectListVm.LoadProjectsAsync();
+    }
+
+    private void BackToProjectList()
+    {
+        _ = ReturnToProjectList();
     }
 
     [RelayCommand]

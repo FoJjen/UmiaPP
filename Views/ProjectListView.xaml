@@ -32,7 +32,7 @@
             </DataGrid>
         </Border>
         <TextBlock Grid.Row="3" Margin="4,14,0,0" Foreground="{StaticResource TextSecondaryBrush}">
-            <Run Text="{DynamicResource TotalProjects}"/><Run Text=" "/><Run Text="{Binding FilteredProjects.Count}"/>
+            <Run Text="{DynamicResource TotalProjects}"/><Run Text=" "/><Run Text="{Binding FilteredProjects.Count, Mode=OneWay}"/>
         </TextBlock>
     </Grid>
 </UserControl>

@@ -3,9 +3,9 @@
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
 
     <!-- App & Header -->
-    <sys:String x:Key="AppTitle">UmiaPP - Ventilationsentreprenad</sys:String>
-    <sys:String x:Key="NoProjectSelected">Inget projekt valt</sys:String>
-    <sys:String x:Key="BackToProjects">← Tillbaka till projektlistan</sys:String>
+    <sys:String x:Key="AppTitle">UmiaPP - Umia Projekt Portal</sys:String>
+    <sys:String x:Key="NoProjectSelected">-</sys:String>
+    <sys:String x:Key="BackToProjects">← Tillbaka</sys:String>
     <sys:String x:Key="Settings">Inställningar</sys:String>
 
     <!-- Project List -->
@@ -36,7 +36,15 @@
     <sys:String x:Key="TabAta">ÄTA</sys:String>
 
     <!-- Overview Tab -->
-    <sys:String x:Key="OverviewHeading">Projektstatus & Nyckeltal</sys:String>
+    <sys:String x:Key="SalesCalculation">Försäljningskalkyl</sys:String>
+    <sys:String x:Key="SalesPrice">Försäljningspris (kr)</sys:String>
+    <sys:String x:Key="BudgetedCost">Budgeterad kostnad totalt (kr)</sys:String>
+    <sys:String x:Key="SaveSalesCalculation">Spara försäljningskalkyl</sys:String>
+    <sys:String x:Key="SalesInputHelp">Ange två belopp utan tusentalsavgränsare, minst 0. Använd samma momsgrund som Lube-kalkylen. Klicka på Spara för att uppdatera TG.</sys:String>
+    <sys:String x:Key="CurrentTg">Aktuellt TG</sys:String>
+    <sys:String x:Key="TgBasis">TG = (sparat försäljningspris − Lube produktionskostnad) / försäljningspris × 100. Budgetkostnaden används inte i aktuellt TG. — visas när försäljningspris eller kalkyl saknas.</sys:String>
+    <sys:String x:Key="LubeProductionCost">Lube produktionskostnad (kr)</sys:String>
+    <sys:String x:Key="OverviewHeading">Projektstatus &amp; Nyckeltal</sys:String>
     <sys:String x:Key="KeyMetrics">Nyckeltal</sys:String>
     <sys:String x:Key="TotalHours">Kalkyltimmar:</sys:String>
     <sys:String x:Key="TotalMaterial">Materialkostnad:</sys:String>
@@ -46,22 +54,29 @@
 
     <!-- Lube Tab -->
     <sys:String x:Key="ImportLubeBtn">Importera Lube-kalkyl (.xlsx/.xls)</sys:String>
-    <sys:String x:Key="SubTabKalkyl">Kalkyl (Sammandrag)</sys:String>
+    <sys:String x:Key="SubTabSammandrag">Kalkylsammandrag (Lubekalk)</sys:String>
+    <sys:String x:Key="SubTabSakvarorSpec">Sakvaror (Specifikation)</sys:String>
+    <sys:String x:Key="SubTabKalkyl">Kalkylblad (Rådata)</sys:String>
     <sys:String x:Key="SubTabAnpassning">Projektanpassning</sys:String>
     <sys:String x:Key="SubTabSakvarorMangd">Sakvaror Mängder</sys:String>
     <sys:String x:Key="SubTabSakvarorOffert">Sakvaror Offerter</sys:String>
     <sys:String x:Key="SubTabSakvarorLeverans">Leveranspriser</sys:String>
-    <sys:String x:Key="SubTabSakvarorMontage">Montage & Injustering</sys:String>
+    <sys:String x:Key="SubTabSakvarorMontage">Montage &amp; Injustering</sys:String>
     <sys:String x:Key="SubTabEjMangd">Ej mängdbaserade</sys:String>
     <sys:String x:Key="SumHours">Summa timmar:</sys:String>
     <sys:String x:Key="SumMaterial">Summa material:</sys:String>
     <sys:String x:Key="FilterPlaceholder">Filtrera rader...</sys:String>
+    <sys:String x:Key="ChooseTabs">Flikar</sys:String>
+    <sys:String x:Key="ChooseTabsTitle">Visa flikar</sys:String>
+    <sys:String x:Key="ChooseTabsTooltip">Välj vilka flikar som ska visas</sys:String>
 
     <!-- Purchase Tab -->
     <sys:String x:Key="SectionDrawings">Del 1: Ritningslista</sys:String>
     <sys:String x:Key="AddDrawing">Lägg till ritning</sys:String>
     <sys:String x:Key="OpenPdf">Öppna ritning</sys:String>
     <sys:String x:Key="SectionComponents">Del 2: Komponentlista från PDF / Bluebeam Revu XML</sys:String>
+    <sys:String x:Key="LoadPdf">Ladda PDF</sys:String>
+    <sys:String x:Key="NoPdfLoaded">Ingen PDF vald</sys:String>
     <sys:String x:Key="ImportBluebeamXml">Importera Bluebeam XML</sys:String>
     <sys:String x:Key="ExportExcel">Exportera till Excel</sys:String>
     <sys:String x:Key="ExportCsv">Exportera till CSV</sys:String>

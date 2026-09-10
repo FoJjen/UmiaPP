@@ -13,6 +13,9 @@ public class Project
     public DisciplineType Discipline { get; set; } = DisciplineType.Ventilation;
     public DateTime CreatedDate { get; set; } = DateTime.Now;
     public string? Description { get; set; }
+    public string? LubeSummaryJson { get; set; }
+    public decimal? SalesPrice { get; set; }
+    public decimal? BudgetedCost { get; set; }
 
     // Navigation properties
     public List<Drawing> Drawings { get; set; } = [];

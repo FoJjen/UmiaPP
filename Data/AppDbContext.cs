@@ -85,6 +85,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<LubeSakvaraMangd>(entity =>
         {
             entity.HasKey(x => x.Id);
+            entity.Ignore(x => x.Differens);
             entity.HasOne(x => x.Project)
                   .WithMany(p => p.LubeSakvarorMangder)
                   .HasForeignKey(x => x.ProjectId)

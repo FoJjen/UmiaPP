@@ -1,3 +1,6 @@
+using System.ComponentModel.DataAnnotations.Schema;
+using CommunityToolkit.Mvvm.ComponentModel;
+
 namespace UmiaPP.Models;
 
 public class LubeKalkylPost
@@ -28,7 +31,7 @@ public class LubeProjektanpassningPost
     public Project? Project { get; set; }
 }
 
-public class LubeSakvaraMangd
+public partial class LubeSakvaraMangd : ObservableObject
 {
     public int Id { get; set; }
     public int ProjectId { get; set; }
@@ -38,7 +41,33 @@ public class LubeSakvaraMangd
     public double Antal { get; set; }
     public string Enhet { get; set; } = "st";
 
+    public string Grupp { get; set; } = string.Empty;
+    public string Produkt { get; set; } = string.Empty;
+    public string Produktkod { get; set; } = string.Empty;
+    public string Leverantor { get; set; } = string.Empty;
+    public double PrisBto { get; set; }
+    public double RabattSats { get; set; }
+    public double PrisNto { get; set; }
+
+    [ObservableProperty]
+    private double _offertpris;
+
+    [ObservableProperty]
+    private double _slutpris;
+
+    [ObservableProperty]
+    private bool _arKopt;
+
+    [ObservableProperty]
+    private string _anteckningar = string.Empty;
+
+    [NotMapped]
+    public double Differens => Slutpris == 0 ? 0 : Slutpris - Offertpris;
+
     public Project? Project { get; set; }
+
+    partial void OnOffertprisChanged(double value) => OnPropertyChanged(nameof(Differens));
+    partial void OnSlutprisChanged(double value) => OnPropertyChanged(nameof(Differens));
 }
 
 public class LubeSakvaraOffert

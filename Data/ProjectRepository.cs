@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using UmiaPP.Models;
 
 namespace UmiaPP.Data;
@@ -34,6 +35,7 @@ public class ProjectRepository : IProjectRepository
             .Include(p => p.LubeSakvarorMontagePoster)
             .Include(p => p.LubeEjMangdbaseradePoster)
             .Include(p => p.BluebeamMarkups)
+            .AsSplitQuery()
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.Id == id);
     }
@@ -63,6 +65,18 @@ public class ProjectRepository : IProjectRepository
 
         await context.SaveChangesAsync();
         return existing;
+    }
+
+    public async Task SaveSalesCalculationAsync(int projectId, decimal salesPrice, decimal budgetedCost)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(salesPrice);
+        ArgumentOutOfRangeException.ThrowIfNegative(budgetedCost);
+        await using var context = _contextFactory();
+        var project = await context.Projects.FirstOrDefaultAsync(p => p.Id == projectId)
+            ?? throw new InvalidOperationException($"Projektet med ID {projectId} hittades inte.");
+        project.SalesPrice = salesPrice;
+        project.BudgetedCost = budgetedCost;
+        await context.SaveChangesAsync();
     }
 
     public async Task<bool> DeleteAsync(int id)
@@ -113,9 +127,13 @@ public class ProjectRepository : IProjectRepository
         List<LubeSakvaraOffert> offerter,
         List<LubeSakvaraLeveranspris> leveranspriser,
         List<LubeSakvaraMontage> montage,
-        List<LubeEjMangdbaserad> ejMangdbaserade)
+        List<LubeEjMangdbaserad> ejMangdbaserade,
+        LubeCalculationSummary summary)
     {
         await using var context = _contextFactory();
+        var project = await context.Projects.FirstOrDefaultAsync(p => p.Id == projectId)
+            ?? throw new InvalidOperationException($"Projektet med ID {projectId} hittades inte.");
+        project.LubeSummaryJson = JsonSerializer.Serialize(summary);
 
         // Rensa gamla kalkylrader för projektet
         var oldKalkyl = await context.LubeKalkylPoster.Where(x => x.ProjectId == projectId).ToListAsync();
@@ -125,6 +143,22 @@ public class ProjectRepository : IProjectRepository
         context.LubeProjektanpassningar.RemoveRange(oldAnpassning);
 
         var oldMangder = await context.LubeSakvarorMangder.Where(x => x.ProjectId == projectId).ToListAsync();
+        foreach (var item in sakvarorMangder)
+        {
+            var existing = oldMangder.FirstOrDefault(o =>
+                string.Equals(o.Beteckning, item.Beteckning, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(o.Produktkod, item.Produktkod, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(o.Leverantor, item.Leverantor, StringComparison.OrdinalIgnoreCase));
+            if (existing != null)
+            {
+                if (existing.Offertpris != 0)
+                    item.Offertpris = existing.Offertpris;
+                if (existing.Slutpris != 0)
+                    item.Slutpris = existing.Slutpris;
+                item.ArKopt = existing.ArKopt;
+                item.Anteckningar = existing.Anteckningar;
+            }
+        }
         context.LubeSakvarorMangder.RemoveRange(oldMangder);
 
         var oldOfferter = await context.LubeSakvarorOfferter.Where(x => x.ProjectId == projectId).ToListAsync();
@@ -156,6 +190,23 @@ public class ProjectRepository : IProjectRepository
         await context.LubeSakvarorMontagePoster.AddRangeAsync(montage);
         await context.LubeEjMangdbaseradePoster.AddRangeAsync(ejMangdbaserade);
 
+        await context.SaveChangesAsync();
+    }
+
+    public async Task UpdateSakvaraPricesAsync(LubeSakvaraMangd item)
+    {
+        if (item.Id <= 0)
+            return;
+
+        await using var context = _contextFactory();
+        var existing = await context.LubeSakvarorMangder.FirstOrDefaultAsync(x => x.Id == item.Id);
+        if (existing == null)
+            return;
+
+        existing.Offertpris = item.Offertpris;
+        existing.Slutpris = item.Slutpris;
+        existing.ArKopt = item.ArKopt;
+        existing.Anteckningar = item.Anteckningar;
         await context.SaveChangesAsync();
     }
 

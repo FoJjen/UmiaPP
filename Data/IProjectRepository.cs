@@ -8,6 +8,7 @@ public interface IProjectRepository
     Task<Project?> GetByIdAsync(int id);
     Task<Project> CreateAsync(Project project);
     Task<Project> UpdateAsync(Project project);
+    Task SaveSalesCalculationAsync(int projectId, decimal salesPrice, decimal budgetedCost);
     Task<bool> DeleteAsync(int id);
 
     // Ritningar
@@ -24,7 +25,10 @@ public interface IProjectRepository
         List<LubeSakvaraOffert> offerter,
         List<LubeSakvaraLeveranspris> leveranspriser,
         List<LubeSakvaraMontage> montage,
-        List<LubeEjMangdbaserad> ejMangdbaserade);
+        List<LubeEjMangdbaserad> ejMangdbaserade,
+        LubeCalculationSummary summary);
+
+    Task UpdateSakvaraPricesAsync(LubeSakvaraMangd item);
 
     // Bluebeam markups
     Task<List<BluebeamMarkupItem>> GetBluebeamMarkupsAsync(int projectId);
