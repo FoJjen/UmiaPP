@@ -1,0 +1,89 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- App & Header -->
+    <sys:String x:Key="AppTitle">UmiaPP - Ventilationsentreprenad</sys:String>
+    <sys:String x:Key="NoProjectSelected">Inget projekt valt</sys:String>
+    <sys:String x:Key="BackToProjects">← Tillbaka till projektlistan</sys:String>
+    <sys:String x:Key="Settings">Inställningar</sys:String>
+
+    <!-- Project List -->
+    <sys:String x:Key="ProjectsTitle">Projektöversikt</sys:String>
+    <sys:String x:Key="NewProject">Nytt projekt</sys:String>
+    <sys:String x:Key="EditProject">Redigera projekt</sys:String>
+    <sys:String x:Key="DeleteProject">Radera</sys:String>
+    <sys:String x:Key="OpenProject">Öppna projekt</sys:String>
+    <sys:String x:Key="SearchPlaceholder">Sök projekt, nummer eller beställare...</sys:String>
+    <sys:String x:Key="ProjectName">Projektnamn</sys:String>
+    <sys:String x:Key="ProjectNumber">Projektnummer</sys:String>
+    <sys:String x:Key="Client">Beställare</sys:String>
+    <sys:String x:Key="ContractType">Entreprenadform</sys:String>
+    <sys:String x:Key="Discipline">Teknikområde</sys:String>
+    <sys:String x:Key="Status">Status</sys:String>
+    <sys:String x:Key="CreatedDate">Skapat datum</sys:String>
+    <sys:String x:Key="Actions">Åtgärder</sys:String>
+    <sys:String x:Key="TotalProjects">Totalt antal projekt:</sys:String>
+
+    <!-- Delete Confirmation -->
+    <sys:String x:Key="DeleteConfirmTitle">Bekräfta radering</sys:String>
+    <sys:String x:Key="DeleteConfirmMessage">Är du säker på att du vill radera projektet {0}? Åtgärden går inte att ångra.</sys:String>
+
+    <!-- Tabs -->
+    <sys:String x:Key="TabOverview">Översikt</sys:String>
+    <sys:String x:Key="TabLube">Projektkalkyl (Lube)</sys:String>
+    <sys:String x:Key="TabPurchase">Inköp</sys:String>
+    <sys:String x:Key="TabAta">ÄTA</sys:String>
+
+    <!-- Overview Tab -->
+    <sys:String x:Key="OverviewHeading">Projektstatus & Nyckeltal</sys:String>
+    <sys:String x:Key="KeyMetrics">Nyckeltal</sys:String>
+    <sys:String x:Key="TotalHours">Kalkyltimmar:</sys:String>
+    <sys:String x:Key="TotalMaterial">Materialkostnad:</sys:String>
+    <sys:String x:Key="DrawingCount">Antal ritningar:</sys:String>
+    <sys:String x:Key="ComponentCount">Komponenter i inköp:</sys:String>
+    <sys:String x:Key="OverviewDescription">Översiktsvyn ger en snabb sammanställning av projektets kalkyler, ritningar och inköpsmängder. Ytterligare grafer och budgetuppföljning integreras här.</sys:String>
+
+    <!-- Lube Tab -->
+    <sys:String x:Key="ImportLubeBtn">Importera Lube-kalkyl (.xlsx/.xls)</sys:String>
+    <sys:String x:Key="SubTabKalkyl">Kalkyl (Sammandrag)</sys:String>
+    <sys:String x:Key="SubTabAnpassning">Projektanpassning</sys:String>
+    <sys:String x:Key="SubTabSakvarorMangd">Sakvaror Mängder</sys:String>
+    <sys:String x:Key="SubTabSakvarorOffert">Sakvaror Offerter</sys:String>
+    <sys:String x:Key="SubTabSakvarorLeverans">Leveranspriser</sys:String>
+    <sys:String x:Key="SubTabSakvarorMontage">Montage & Injustering</sys:String>
+    <sys:String x:Key="SubTabEjMangd">Ej mängdbaserade</sys:String>
+    <sys:String x:Key="SumHours">Summa timmar:</sys:String>
+    <sys:String x:Key="SumMaterial">Summa material:</sys:String>
+    <sys:String x:Key="FilterPlaceholder">Filtrera rader...</sys:String>
+
+    <!-- Purchase Tab -->
+    <sys:String x:Key="SectionDrawings">Del 1: Ritningslista</sys:String>
+    <sys:String x:Key="AddDrawing">Lägg till ritning</sys:String>
+    <sys:String x:Key="OpenPdf">Öppna ritning</sys:String>
+    <sys:String x:Key="SectionComponents">Del 2: Komponentlista från PDF / Bluebeam Revu XML</sys:String>
+    <sys:String x:Key="ImportBluebeamXml">Importera Bluebeam XML</sys:String>
+    <sys:String x:Key="ExportExcel">Exportera till Excel</sys:String>
+    <sys:String x:Key="ExportCsv">Exportera till CSV</sys:String>
+    <sys:String x:Key="TotalDuctMeters">Kanaler totalt:</sys:String>
+    <sys:String x:Key="TotalDetailsCount">Detaljer totalt:</sys:String>
+    <sys:String x:Key="TotalEquipmentCount">Sakvaror/Don totalt:</sys:String>
+
+    <!-- ATA Tab -->
+    <sys:String x:Key="AtaHeading">Ändrings- och Tilläggsarbeten (ÄTA)</sys:String>
+    <sys:String x:Key="AtaDescription">Funktionell placeholder-vy förberedd för registrering och uppföljning av ÄTA-poster, kravspecifikationer och godkända beställningar.</sys:String>
+    <sys:String x:Key="RegisterAta">Registrera ny ÄTA</sys:String>
+
+    <!-- Settings Dialog -->
+    <sys:String x:Key="SettingsTitle">Applikationsinställningar</sys:String>
+    <sys:String x:Key="LanguageLabel">Språk / Language:</sys:String>
+    <sys:String x:Key="Swedish">Svenska</sys:String>
+    <sys:String x:Key="English">English</sys:String>
+    <sys:String x:Key="DatabaseLabel">Databas:</sys:String>
+    <sys:String x:Key="LocalSqlite">Lokal SQLite (UmiaPP.db)</sys:String>
+    <sys:String x:Key="CloudSyncStatus">Molnsynkronisering: Inaktiv (Förberedd)</sys:String>
+    <sys:String x:Key="Save">Spara</sys:String>
+    <sys:String x:Key="Cancel">Avbryt</sys:String>
+    <sys:String x:Key="Close">Stäng</sys:String>
+
+</ResourceDictionary>

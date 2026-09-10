@@ -1,0 +1,89 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- App & Header -->
+    <sys:String x:Key="AppTitle">UmiaPP - Ventilation Contracting</sys:String>
+    <sys:String x:Key="NoProjectSelected">No project selected</sys:String>
+    <sys:String x:Key="BackToProjects">← Back to project list</sys:String>
+    <sys:String x:Key="Settings">Settings</sys:String>
+
+    <!-- Project List -->
+    <sys:String x:Key="ProjectsTitle">Projects Overview</sys:String>
+    <sys:String x:Key="NewProject">New Project</sys:String>
+    <sys:String x:Key="EditProject">Edit Project</sys:String>
+    <sys:String x:Key="DeleteProject">Delete</sys:String>
+    <sys:String x:Key="OpenProject">Open Project</sys:String>
+    <sys:String x:Key="SearchPlaceholder">Search project, number or client...</sys:String>
+    <sys:String x:Key="ProjectName">Project Name</sys:String>
+    <sys:String x:Key="ProjectNumber">Project Number</sys:String>
+    <sys:String x:Key="Client">Client</sys:String>
+    <sys:String x:Key="ContractType">Contract Type</sys:String>
+    <sys:String x:Key="Discipline">Discipline</sys:String>
+    <sys:String x:Key="Status">Status</sys:String>
+    <sys:String x:Key="CreatedDate">Created Date</sys:String>
+    <sys:String x:Key="Actions">Actions</sys:String>
+    <sys:String x:Key="TotalProjects">Total Projects:</sys:String>
+
+    <!-- Delete Confirmation -->
+    <sys:String x:Key="DeleteConfirmTitle">Confirm Delete</sys:String>
+    <sys:String x:Key="DeleteConfirmMessage">Are you sure you want to delete project {0}? This action cannot be undone.</sys:String>
+
+    <!-- Tabs -->
+    <sys:String x:Key="TabOverview">Overview</sys:String>
+    <sys:String x:Key="TabLube">Project Calculation (Lube)</sys:String>
+    <sys:String x:Key="TabPurchase">Procurement</sys:String>
+    <sys:String x:Key="TabAta">Variation Orders</sys:String>
+
+    <!-- Overview Tab -->
+    <sys:String x:Key="OverviewHeading">Project Status & Key Metrics</sys:String>
+    <sys:String x:Key="KeyMetrics">Key Metrics</sys:String>
+    <sys:String x:Key="TotalHours">Estimated Hours:</sys:String>
+    <sys:String x:Key="TotalMaterial">Material Cost:</sys:String>
+    <sys:String x:Key="DrawingCount">Drawings Count:</sys:String>
+    <sys:String x:Key="ComponentCount">Purchased Items:</sys:String>
+    <sys:String x:Key="OverviewDescription">The overview provides a quick breakdown of calculation totals, drawings, and procurement quantities. Future dashboard charts and budget tracking will be integrated here.</sys:String>
+
+    <!-- Lube Tab -->
+    <sys:String x:Key="ImportLubeBtn">Import Lube Calculation (.xlsx/.xls)</sys:String>
+    <sys:String x:Key="SubTabKalkyl">Calculation (Summary)</sys:String>
+    <sys:String x:Key="SubTabAnpassning">Project Adjustments</sys:String>
+    <sys:String x:Key="SubTabSakvarorMangd">Equipment Quantities</sys:String>
+    <sys:String x:Key="SubTabSakvarorOffert">Equipment Quotes</sys:String>
+    <sys:String x:Key="SubTabSakvarorLeverans">Delivery Prices</sys:String>
+    <sys:String x:Key="SubTabSakvarorMontage">Installation & Commissioning</sys:String>
+    <sys:String x:Key="SubTabEjMangd">Non-quantified Tasks</sys:String>
+    <sys:String x:Key="SumHours">Total Hours:</sys:String>
+    <sys:String x:Key="SumMaterial">Total Material:</sys:String>
+    <sys:String x:Key="FilterPlaceholder">Filter rows...</sys:String>
+
+    <!-- Purchase Tab -->
+    <sys:String x:Key="SectionDrawings">Part 1: Drawing List</sys:String>
+    <sys:String x:Key="AddDrawing">Add Drawing</sys:String>
+    <sys:String x:Key="OpenPdf">Open Drawing</sys:String>
+    <sys:String x:Key="SectionComponents">Part 2: Component List from PDF / Bluebeam Revu XML</sys:String>
+    <sys:String x:Key="ImportBluebeamXml">Import Bluebeam XML</sys:String>
+    <sys:String x:Key="ExportExcel">Export to Excel</sys:String>
+    <sys:String x:Key="ExportCsv">Export to CSV</sys:String>
+    <sys:String x:Key="TotalDuctMeters">Total Ducts:</sys:String>
+    <sys:String x:Key="TotalDetailsCount">Total Fittings:</sys:String>
+    <sys:String x:Key="TotalEquipmentCount">Total Equipment/Diffusers:</sys:String>
+
+    <!-- ATA Tab -->
+    <sys:String x:Key="AtaHeading">Variation Orders & Change Management</sys:String>
+    <sys:String x:Key="AtaDescription">Functional placeholder view prepared for registration and monitoring of variation orders, change specifications, and client approvals.</sys:String>
+    <sys:String x:Key="RegisterAta">Register New Variation Order</sys:String>
+
+    <!-- Settings Dialog -->
+    <sys:String x:Key="SettingsTitle">Application Settings</sys:String>
+    <sys:String x:Key="LanguageLabel">Language / Språk:</sys:String>
+    <sys:String x:Key="Swedish">Svenska</sys:String>
+    <sys:String x:Key="English">English</sys:String>
+    <sys:String x:Key="DatabaseLabel">Database:</sys:String>
+    <sys:String x:Key="LocalSqlite">Local SQLite (UmiaPP.db)</sys:String>
+    <sys:String x:Key="CloudSyncStatus">Cloud Sync: Inactive (Prepared)</sys:String>
+    <sys:String x:Key="Save">Save</sys:String>
+    <sys:String x:Key="Cancel">Cancel</sys:String>
+    <sys:String x:Key="Close">Close</sys:String>
+
+</ResourceDictionary>

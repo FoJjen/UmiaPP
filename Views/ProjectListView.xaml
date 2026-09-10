@@ -1,0 +1,38 @@
+<UserControl x:Class="UmiaPP.Views.ProjectListView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:models="clr-namespace:UmiaPP.Models">
+    <Grid Margin="30">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <TextBlock Text="{DynamicResource ProjectsTitle}" FontSize="28" FontWeight="SemiBold"/>
+        <DockPanel Grid.Row="1" Margin="0,24,0,16">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Content="{DynamicResource NewProject}" Command="{Binding NewProjectCommand}" Style="{StaticResource PrimaryButton}" Margin="0,0,8,0"/>
+                <Button Content="{DynamicResource EditProject}" Command="{Binding EditProjectCommand}" CommandParameter="{Binding SelectedProject}" Style="{StaticResource SecondaryButton}" Margin="0,0,8,0"/>
+                <Button Content="{DynamicResource DeleteProject}" Command="{Binding DeleteProjectCommand}" CommandParameter="{Binding SelectedProject}" Style="{StaticResource DangerButton}"/>
+            </StackPanel>
+            <TextBox Width="320" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" ToolTip="{DynamicResource SearchPlaceholder}"/>
+        </DockPanel>
+        <Border Grid.Row="2" Style="{StaticResource ModernCard}" Padding="0">
+            <DataGrid ItemsSource="{Binding FilteredProjects}" SelectedItem="{Binding SelectedProject}" IsReadOnly="True" MouseDoubleClick="ProjectGrid_MouseDoubleClick">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="{DynamicResource ProjectNumber}" Binding="{Binding ProjectNumber}" Width="130"/>
+                    <DataGridTextColumn Header="{DynamicResource ProjectName}" Binding="{Binding Name}" Width="*"/>
+                    <DataGridTextColumn Header="{DynamicResource Client}" Binding="{Binding Client}" Width="*"/>
+                    <DataGridTextColumn Header="{DynamicResource ContractType}" Binding="{Binding ContractType}" Width="150"/>
+                    <DataGridTextColumn Header="{DynamicResource Discipline}" Binding="{Binding Discipline}" Width="115"/>
+                    <DataGridTextColumn Header="{DynamicResource Status}" Binding="{Binding Status}" Width="125"/>
+                    <DataGridTextColumn Header="{DynamicResource CreatedDate}" Binding="{Binding CreatedDate, StringFormat={}{0:yyyy-MM-dd}}" Width="120"/>
+                    <DataGridTemplateColumn Header="{DynamicResource Actions}" Width="130">
+                        <DataGridTemplateColumn.CellTemplate><DataTemplate>
+                            <Button Content="{DynamicResource OpenProject}" Command="{Binding DataContext.OpenProjectCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Style="{StaticResource SecondaryButton}" Padding="10,5"/>
+                        </DataTemplate></DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+        <TextBlock Grid.Row="3" Margin="4,14,0,0" Foreground="{StaticResource TextSecondaryBrush}">
+            <Run Text="{DynamicResource TotalProjects}"/><Run Text=" "/><Run Text="{Binding FilteredProjects.Count}"/>
+        </TextBlock>
+    </Grid>
+</UserControl>
