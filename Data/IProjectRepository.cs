@@ -30,6 +30,8 @@ public interface IProjectRepository
 
     Task UpdateSakvaraPricesAsync(LubeSakvaraMangd item);
 
+    Task SaveLubeSummaryAsync(int projectId, string summaryJson);
+
     // Bluebeam markups
     Task<List<BluebeamMarkupItem>> GetBluebeamMarkupsAsync(int projectId);
     Task SaveBluebeamMarkupsAsync(int projectId, List<BluebeamMarkupItem> markups);

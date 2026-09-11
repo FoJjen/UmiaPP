@@ -1,0 +1,38 @@
+<Window x:Class="UmiaPP.Views.ColorPickerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Välj färg" SizeToContent="WidthAndHeight" WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Rectangle x:Name="PreviewRect" Height="60" RadiusX="4" RadiusY="4" Stroke="Gray" StrokeThickness="1"/>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,8,0,0">
+            <TextBlock Width="28" VerticalAlignment="Center">R</TextBlock>
+            <Slider x:Name="SliderR" Minimum="0" Maximum="255" Width="220" ValueChanged="Slider_ValueChanged"/>
+            <TextBox x:Name="RBox" Width="48" Margin="8,0,0,0" IsReadOnly="True"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,6,0,0">
+            <TextBlock Width="28" VerticalAlignment="Center">G</TextBlock>
+            <Slider x:Name="SliderG" Minimum="0" Maximum="255" Width="220" ValueChanged="Slider_ValueChanged"/>
+            <TextBox x:Name="GBox" Width="48" Margin="8,0,0,0" IsReadOnly="True"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,6,0,0">
+            <TextBlock Width="28" VerticalAlignment="Center">B</TextBlock>
+            <Slider x:Name="SliderB" Minimum="0" Maximum="255" Width="220" ValueChanged="Slider_ValueChanged"/>
+            <TextBox x:Name="BBox" Width="48" Margin="8,0,0,0" IsReadOnly="True"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button Content="Avbryt" Width="86" Margin="0,0,10,0" Click="Cancel_Click"/>
+            <Button Content="OK" Width="86" Click="Ok_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

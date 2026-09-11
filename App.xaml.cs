@@ -17,6 +17,11 @@ namespace UmiaPP
             var localization = new LocalizationService();
             localization.SetLanguage(localization.CurrentLanguage);
 
+            // Apply theme before creating windows
+            var themeService = new ThemeService();
+            var settings = localization.LoadSettings();
+            themeService.ApplyTheme(settings.Theme ?? "Light");
+
             var dataService = new LocalDataService();
             var mainViewModel = new MainViewModel(
                 dataService,
@@ -24,7 +29,8 @@ namespace UmiaPP
                 new DialogService(),
                 new LubeImportService(),
                 new BluebeamXmlParserService(),
-                new ExportService());
+                new ExportService(),
+                themeService);
 
             var mainWindow = new MainWindow { DataContext = mainViewModel };
             MainWindow = mainWindow;

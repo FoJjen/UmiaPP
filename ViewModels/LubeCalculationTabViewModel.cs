@@ -16,6 +16,36 @@ public partial class LubeCalculationTabViewModel : ObservableObject
     private readonly ILubeImportService _lubeImportService;
     private readonly IDialogService _dialogService;
     private readonly HashSet<LubeSakvaraMangd> _totalRows = [];
+    private readonly SemaphoreSlim _summarySaveLock = new(1, 1);
+
+    partial void OnSummaryChanged(LubeCalculationSummary oldValue, LubeCalculationSummary newValue)
+    {
+        oldValue.ActualCostsChanged -= OnSummaryActualCostsChanged;
+        newValue.InitializeActualCosts();
+        newValue.ActualCostsChanged += OnSummaryActualCostsChanged;
+    }
+
+    private async void OnSummaryActualCostsChanged(object? sender, EventArgs e)
+    {
+        var project = Project;
+        await _summarySaveLock.WaitAsync();
+        try
+        {
+            if (sender is not LubeCalculationSummary summary || !ReferenceEquals(summary, Summary))
+                return;
+            var json = JsonSerializer.Serialize(summary);
+            await _dataService.Projects.SaveLubeSummaryAsync(project.Id, json);
+            project.LubeSummaryJson = json;
+        }
+        catch (Exception ex)
+        {
+            _dialogService.ShowError($"Kunde inte spara utfallet: {ex.Message}", "Sparfel");
+        }
+        finally
+        {
+            _summarySaveLock.Release();
+        }
+    }
 
     public double SumSlutpris => SakvarorMangder.Sum(x => x.Slutpris);
 
@@ -305,16 +335,26 @@ public partial class LubeCalculationTabViewModel : ObservableObject
             }
 
             // Spara i databasen
-            await _dataService.Projects.SaveLubeCalculationDataAsync(
-                Project.Id,
-                res.KalkylPoster,
-                res.Anpassningar,
-                res.SakvarorMangder,
-                res.SakvarorOfferter,
-                res.SakvarorLeveranspriser,
-                res.SakvarorMontagePoster,
-                res.EjMangdbaseradePoster,
-                res.Summary);
+            await _summarySaveLock.WaitAsync();
+            try
+            {
+                await _dataService.Projects.SaveLubeCalculationDataAsync(
+                    Project.Id,
+                    res.KalkylPoster,
+                    res.Anpassningar,
+                    res.SakvarorMangder,
+                    res.SakvarorOfferter,
+                    res.SakvarorLeveranspriser,
+                    res.SakvarorMontagePoster,
+                    res.EjMangdbaseradePoster,
+                    res.Summary);
+                Summary = res.Summary;
+                Project.LubeSummaryJson = JsonSerializer.Serialize(res.Summary);
+            }
+            finally
+            {
+                _summarySaveLock.Release();
+            }
 
             // Uppdatera lokalt
             KalkylPoster = new ObservableCollection<LubeKalkylPost>(res.KalkylPoster);
@@ -325,8 +365,6 @@ public partial class LubeCalculationTabViewModel : ObservableObject
             SakvarorMontage = new ObservableCollection<LubeSakvaraMontage>(res.SakvarorMontagePoster);
             EjMangdbaserade = new ObservableCollection<LubeEjMangdbaserad>(res.EjMangdbaseradePoster);
 
-            Summary = res.Summary;
-            Project.LubeSummaryJson = JsonSerializer.Serialize(res.Summary);
             LubeProjektNummer = res.ProjektNummer ?? Project.ProjectNumber;
             LubePdelRitning = res.PdelRitning ?? "Alla";
             LubeHandling = res.Handling ?? "Alla h";

@@ -133,6 +133,12 @@ public class ProjectRepository : IProjectRepository
         await using var context = _contextFactory();
         var project = await context.Projects.FirstOrDefaultAsync(p => p.Id == projectId)
             ?? throw new InvalidOperationException($"Projektet med ID {projectId} hittades inte.");
+        if (!string.IsNullOrWhiteSpace(project.LubeSummaryJson))
+        {
+            var previous = JsonSerializer.Deserialize<LubeCalculationSummary>(project.LubeSummaryJson);
+            if (previous != null)
+                summary.PreserveActualCosts(previous);
+        }
         project.LubeSummaryJson = JsonSerializer.Serialize(summary);
 
         // Rensa gamla kalkylrader för projektet
@@ -190,6 +196,15 @@ public class ProjectRepository : IProjectRepository
         await context.LubeSakvarorMontagePoster.AddRangeAsync(montage);
         await context.LubeEjMangdbaseradePoster.AddRangeAsync(ejMangdbaserade);
 
+        await context.SaveChangesAsync();
+    }
+
+    public async Task SaveLubeSummaryAsync(int projectId, string summaryJson)
+    {
+        await using var context = _contextFactory();
+        var project = await context.Projects.FirstOrDefaultAsync(p => p.Id == projectId)
+            ?? throw new InvalidOperationException($"Projektet med ID {projectId} hittades inte.");
+        project.LubeSummaryJson = summaryJson;
         await context.SaveChangesAsync();
     }
 

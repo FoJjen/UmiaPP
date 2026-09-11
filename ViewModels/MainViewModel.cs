@@ -10,6 +10,7 @@ public partial class MainViewModel : ObservableObject
 {
     private readonly IDataService _dataService;
     private readonly ILocalizationService _localization;
+    private readonly IThemeService _themeService;
     private readonly IDialogService _dialogService;
     private readonly ILubeImportService _lubeImport;
     private readonly IBluebeamXmlParserService _bluebeamParser;
@@ -39,10 +40,12 @@ public partial class MainViewModel : ObservableObject
         IDialogService dialogService,
         ILubeImportService lubeImport,
         IBluebeamXmlParserService bluebeamParser,
-        IExportService exportService)
+        IExportService exportService,
+        IThemeService themeService)
     {
         _dataService = dataService;
         _localization = localization;
+        _themeService = themeService;
         _dialogService = dialogService;
         _lubeImport = lubeImport;
         _bluebeamParser = bluebeamParser;
@@ -97,7 +100,7 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void OpenSettings()
     {
-        var settingsVm = new SettingsViewModel(_localization);
+        var settingsVm = new SettingsViewModel(_localization, _themeService);
         var settingsDialog = new Views.SettingsDialog(settingsVm);
         settingsDialog.ShowDialog();
         UpdateActiveProjectTitle();

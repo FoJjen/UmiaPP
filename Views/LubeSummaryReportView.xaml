@@ -1,7 +1,7 @@
 <UserControl x:Class="UmiaPP.Views.LubeSummaryReportView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             FontFamily="Arial" FontSize="11" Foreground="Black" Background="White">
+             FontFamily="Arial" FontSize="11" Foreground="Black" Background="White" Language="sv-SE">
     <UserControl.Resources>
         <Style x:Key="Cell" TargetType="Border">
             <Setter Property="BorderBrush" Value="Black"/>
@@ -25,19 +25,34 @@
             </Style.Triggers>
         </Style>
     </UserControl.Resources>
-    <ItemsControl ItemsSource="{Binding ReportSections}" Width="760" HorizontalAlignment="Left" Margin="12">
+    <StackPanel HorizontalAlignment="Left" Margin="12">
+    <TextBlock Text="Utfall (kr): ange kostnaden per rad. Grå belopp används från kalkylen tills ett utfall anges. Töm fältet för att återgå till kalkylen. Ändringar sparas när du lämnar fältet."
+               Width="885" Margin="0,0,0,10"/>
+    <ItemsControl ItemsSource="{Binding ReportSections}" Width="885" HorizontalAlignment="Left">
         <ItemsControl.ItemTemplate>
             <DataTemplate>
-                <StackPanel Margin="0,0,0,14">
-                    <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="Bold" Margin="0,0,0,3">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding Title}" Value=""><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
+                <Expander Header="{Binding Title}" IsExpanded="True" Margin="0,0,0,14" HorizontalContentAlignment="Stretch">
+                    <Expander.Style>
+                        <Style TargetType="Expander">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CanCollapse}" Value="False">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="Expander">
+                                                <StackPanel>
+                                                    <TextBlock Text="{TemplateBinding Header}" FontSize="13" FontWeight="Bold"/>
+                                                    <ContentPresenter/>
+                                                </StackPanel>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Expander.Style>
+                    <Expander.HeaderTemplate>
+                        <DataTemplate><TextBlock Text="{Binding}" FontSize="13" FontWeight="Bold"/></DataTemplate>
+                    </Expander.HeaderTemplate>
                     <Border BorderBrush="Black" BorderThickness="1,1,0,0">
                         <ItemsControl ItemsSource="{Binding Rows}">
                             <ItemsControl.ItemTemplate>
@@ -49,6 +64,7 @@
                                             <ColumnDefinition Width="80"/>
                                             <ColumnDefinition Width="65"/>
                                             <ColumnDefinition Width="94"/>
+                                            <ColumnDefinition Width="125"/>
                                         </Grid.ColumnDefinitions>
                                         <Border Grid.Column="0">
                                             <Border.Style>
@@ -75,13 +91,78 @@
                                         <Border Grid.Column="2" Style="{StaticResource InputCell}"><TextBlock Text="{Binding Quantity}" TextAlignment="Right"/></Border>
                                         <Border Grid.Column="3" Style="{StaticResource InputCell}"><TextBlock Text="{Binding Rate}" TextAlignment="Right"/></Border>
                                         <Border Grid.Column="4" Style="{StaticResource Cell}"><TextBlock Text="{Binding Net}" TextAlignment="Right"/></Border>
+                                        <Border Grid.Column="5" Style="{StaticResource Cell}">
+                                            <Grid>
+                                                <TextBlock Text="{Binding ActualTotal, StringFormat={}{0:N2}}" TextAlignment="Right">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding CanEditActualCost}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                                <TextBlock Text="Utfall (kr)" FontWeight="Bold" TextAlignment="Right">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsHeader}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                                <Grid>
+                                                    <Grid.Style>
+                                                        <Style TargetType="Grid">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding CanEditActualCost}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Grid.Style>
+                                                    <TextBlock Text="{Binding NetAmount, StringFormat={}{0:N2}}" Foreground="#666666" FontStyle="Italic" TextAlignment="Right" IsHitTestVisible="False" Margin="2,0">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                <Style.Triggers>
+                                                                    <MultiDataTrigger>
+                                                                        <MultiDataTrigger.Conditions>
+                                                                            <Condition Binding="{Binding Text, ElementName=ActualCostInput}" Value=""/>
+                                                                            <Condition Binding="{Binding IsKeyboardFocused, ElementName=ActualCostInput}" Value="False"/>
+                                                                        </MultiDataTrigger.Conditions>
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </MultiDataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                    <TextBox x:Name="ActualCostInput" Text="{Binding ActualCost, UpdateSourceTrigger=LostFocus, TargetNullValue='', StringFormat={}{0:N2}, ValidatesOnExceptions=True}"
+                                                             Background="Transparent" Foreground="Black" BorderThickness="0" Padding="2,0" MinHeight="16" FontFamily="Arial" FontSize="11" TextAlignment="Right"
+                                                             AutomationProperties.Name="{Binding Label}">
+                                                        <TextBox.Style>
+                                                            <Style TargetType="TextBox">
+                                                                <Setter Property="ToolTip" Value="Utfall i kronor. Lämna tomt för kalkylens belopp. Noll räknas som noll."/>
+                                                                <Style.Triggers>
+                                                                    <Trigger Property="Validation.HasError" Value="True">
+                                                                        <Setter Property="ToolTip" Value="Ange ett giltigt belopp, till exempel 1234,50."/>
+                                                                    </Trigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBox.Style>
+                                                    </TextBox>
+                                                </Grid>
+                                            </Grid>
+                                        </Border>
                                     </Grid>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </Border>
-                </StackPanel>
+                </Expander>
             </DataTemplate>
         </ItemsControl.ItemTemplate>
     </ItemsControl>
+    <TextBlock Text="{Binding ActualProductionCost, StringFormat='Total produktionskostnad (utfall): {0:N2} kr'}" FontWeight="Bold" Margin="0,0,0,12"/>
+    </StackPanel>
 </UserControl>

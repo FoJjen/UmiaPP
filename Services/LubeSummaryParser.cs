@@ -59,6 +59,7 @@ internal static class LubeSummaryParser
                 var reportRow = new LubeReportRow
                 {
                     Label = label, List = Text(2), Quantity = quantity, Rate = Text(7), Net = Text(8),
+                    NetAmount = !header && !Cell(8).IsEmpty() ? Number(8) : null,
                     IsHeader = header, IsTotal = total, IsInput = !header && !total,
                     HasList = (groups || mode == "injustering") && !total
                 };

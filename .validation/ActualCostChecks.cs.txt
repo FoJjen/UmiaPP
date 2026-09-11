@@ -1,0 +1,215 @@
+using System.Globalization;
+using System.IO;
+using System.Reflection;
+using System.Text.Json;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Media;
+using System.Windows.Threading;
+using ClosedXML.Excel;
+using Microsoft.Data.Sqlite;
+using UmiaPP.Data;
+using UmiaPP.Models;
+using UmiaPP.Views;
+
+internal static class ActualCostChecks
+{
+	private static int _checks;
+
+	[STAThread]
+	private static void Main()
+	{
+		CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("sv-SE");
+		CheckCalculations();
+		CheckParser();
+		CheckPersistence();
+		CheckView();
+		Console.WriteLine($"PASS: {_checks} actual-cost regression checks.");
+	}
+
+	private static void Check(bool condition, string name)
+	{
+		if (!condition) throw new InvalidOperationException(name);
+		_checks++;
+		Console.WriteLine($"PASS: {name}");
+	}
+
+	private static void Equal(double expected, double? actual, string name) => Check(actual.HasValue && Math.Abs(expected - actual.Value) < 0.000001, name);
+	private static LubeReportRow Row(string label, double? net = null, bool total = false) => new()
+	{
+		Label = label, NetAmount = net, Net = net?.ToString("N0", CultureInfo.InvariantCulture) ?? "",
+		IsTotal = total, IsInput = !total
+	};
+
+	private static LubeCalculationSummary Sample()
+	{
+		var summary = new LubeCalculationSummary
+		{
+			ImportedAmounts = new() { [nameof(LubeCalculationSummary.TotalProduktionskostnad)] = 2410.5 },
+			ReportSections =
+			[
+				new() { Title = "MONTAGE", Rows = [Row("PRODUKTGRUPP"), Row("Kanaler"), Row("SUMMA FÖRE JUSTERING", total: true), Row("Projektanpassning"), Row("SUMMA EFTER JUSTERING", 1000, true), Row("Restidsersättning", 100), Row("Sociala avgifter", 50), Row("Reskostnad", 20), Row("SUMMA MONTAGE", 1170, true)] },
+				new() { Rows = [new() { Label = "INJUSTERING MED MERA", IsHeader = true }, Row("Injustering", 200), Row("SUMMA", 200, true)] },
+				new() { Title = "LEVERANSER", Rows = [new() { Label = "PRODUKTGRUPP", IsHeader = true }, Row("Sakvaror", 500.25), Row("Sakvaror", 300.25), Row("SUMMA FÖRE JUSTERING", 800.5, true), Row("Frakter", 40), Row("Montagematerial", 40), Row("SUMMA LEVERANS", 880.5, true)] },
+				new() { Rows = [Row("", 60), Row("SUMMA UNDERENTREPRENADER", 60, true)] },
+				new() { Rows = [Row("Övrigt", 100), Row("Montage och injustering med mera", 1370), Row("Leverans", 880.5), Row("Underentreprenader", 60), Row("TOTAL PRODUKTIONSKOSTNAD", 2410.5, true)] }
+			]
+		};
+		summary.ReportSections[0].Rows[0].IsHeader = true;
+		summary.ReportSections[2].Rows[1].List = "Prissatt";
+		summary.ReportSections[2].Rows[2].List = "Offerter";
+		summary.InitializeActualCosts();
+		return summary;
+	}
+
+	private static void CheckCalculations()
+	{
+		var summary = Sample();
+		var labor = summary.ReportSections[0].Rows[4];
+		var delivery = summary.ReportSections[2].Rows[1];
+		Equal(2410.5, summary.ActualProductionCost, "Blank entries preserve calculated production cost");
+		Check(!summary.ReportSections[0].Rows[1].CanEditActualCost, "Hours-only rows cannot double-count costs");
+		Check(labor.CanEditActualCost, "Adjusted labor cost is editable despite SUMMA label");
+		Check(!summary.ReportSections[4].Rows[1].CanEditActualCost, "Final category rollups are not editable detail rows");
+		var notifications = 0;
+		summary.ActualCostsChanged += (_, _) => notifications++;
+		summary.InitializeActualCosts();
+		labor.ActualCost = 0;
+		Equal(1410.5, summary.ActualProductionCost, "Explicit zero replaces calculated labor cost");
+		Equal(170, summary.ReportSections[0].Rows[8].ActualTotal, "Montage subtotal updates");
+		Equal(370, summary.ReportSections[4].Rows[1].ActualTotal, "Montage and balancing rollup updates");
+		Equal(1410.5, summary.ReportSections[4].Rows[4].ActualTotal, "Final report total updates");
+		Check(notifications == 1, "Repeated initialization does not duplicate event handlers");
+		labor.ActualCost = null;
+		Equal(2410.5, summary.ActualProductionCost, "Clearing an entry restores calculated fallback");
+		delivery.ActualCost = 600.5;
+		Equal(900.75, summary.ReportSections[2].Rows[3].ActualTotal, "Delivery subtotal retains cents");
+		Equal(980.75, summary.ReportSections[2].Rows[6].ActualTotal, "Blank freight and materials retain calculated amounts");
+		summary.ReportSections[2].Rows[4].ActualCost = 0;
+		summary.ReportSections[1].Rows[1].ActualCost = 250;
+		summary.ReportSections[3].Rows[0].ActualCost = 80;
+		summary.ReportSections[4].Rows[0].ActualCost = 120;
+		Equal(2560.75, summary.ActualProductionCost, "All detail categories roll up without double counting");
+		Equal(2410.5, summary.TotalProduktionskostnad, "Original calculated total remains unchanged");
+		foreach (var invalid in new[] { double.NaN, double.PositiveInfinity, double.NegativeInfinity })
+		{
+			var rejected = false;
+			try { delivery.ActualCost = invalid; } catch (ArgumentException) { rejected = true; }
+			Check(rejected, "Non-finite actual cost is rejected");
+		}
+		var loaded = JsonSerializer.Deserialize<LubeCalculationSummary>(JsonSerializer.Serialize(summary))!;
+		loaded.InitializeActualCosts();
+		Equal(2560.75, loaded.ActualProductionCost, "JSON round-trip preserves actual costs and totals");
+		Check(loaded.ReportSections[0].Rows[4].ActualCost == null, "JSON preserves blank actual values");
+		Equal(0, loaded.ReportSections[2].Rows[4].ActualCost, "JSON preserves explicit zero");
+		var legacy = Sample();
+		legacy.ReportSections[2].Rows[1].NetAmount = null;
+		legacy.ReportSections[2].Rows[1].Net = "1,234";
+		legacy.InitializeActualCosts();
+		Equal(1234, legacy.ReportSections[2].Rows[1].ActualTotal, "Legacy invariant-formatted JSON is supported");
+	}
+
+	private static void CheckParser()
+	{
+		using var workbook = new XLWorkbook();
+		var sheet = workbook.AddWorksheet("Kalkylsammandrag");
+		sheet.Cell(1, 1).Value = "MONTAGE";
+		sheet.Cell(2, 1).Value = "SUMMA EFTER JUSTERING";
+		sheet.Cell(2, 5).Value = 1;
+		sheet.Cell(2, 8).Value = 1234.56;
+		sheet.Cell(2, 9).Value = 1234.56;
+		sheet.Cell(2, 9).Style.NumberFormat.Format = "#,##0";
+		sheet.Cell(3, 1).Value = "SUMMA MONTAGE";
+		sheet.Cell(3, 9).Value = 1234.56;
+		sheet.Cell(4, 8).Value = "TB %";
+		sheet.Cell(5, 1).Value = "TOTAL PRODUKTIONSKOSTNAD";
+		sheet.Cell(5, 9).Value = 1234.56;
+		var parser = typeof(LubeCalculationSummary).Assembly.GetType("UmiaPP.Services.LubeSummaryParser")!;
+		var summary = (LubeCalculationSummary)parser.GetMethod("Parse", BindingFlags.Public | BindingFlags.Static)!.Invoke(null, [workbook])!;
+		summary.InitializeActualCosts();
+		Equal(1234.56, summary.ReportSections[0].Rows[0].NetAmount, "Excel parser retains unrounded row costs");
+		summary.ReportSections[0].Rows[0].ActualCost = 0;
+		Equal(0, summary.ActualProductionCost, "Unrounded import rolls up accurately");
+	}
+
+	private static void CheckPersistence()
+	{
+		var path = Path.Combine(Path.GetTempPath(), $"UmiaPP-actual-{Guid.NewGuid()}.db");
+		try
+		{
+			using (var context = new AppDbContext(path)) context.Database.EnsureCreated();
+			var repository = new ProjectRepository(() => new AppDbContext(path));
+			var project = repository.CreateAsync(new Project { Name = "Actual cost regression", ProjectNumber = "TEST" }).GetAwaiter().GetResult();
+			var summary = Sample();
+			summary.ReportSections[2].Rows[1].ActualCost = 0;
+			summary.ReportSections[2].Rows[2].ActualCost = 410;
+			repository.SaveLubeSummaryAsync(project.Id, JsonSerializer.Serialize(summary)).GetAwaiter().GetResult();
+			var loaded = repository.GetByIdAsync(project.Id).GetAwaiter().GetResult()!;
+			var restored = JsonSerializer.Deserialize<LubeCalculationSummary>(loaded.LubeSummaryJson!)!;
+			Equal(0, restored.ReportSections[2].Rows[1].ActualCost, "SQLite save/reload preserves explicit zero");
+			Check(loaded.Name == project.Name, "Summary-only save preserves unrelated project fields");
+			var imported = Sample();
+			imported.ReportSections[2].Rows.Reverse();
+			repository.SaveLubeCalculationDataAsync(project.Id, [], [], [], [], [], [], [], imported).GetAwaiter().GetResult();
+			Equal(0, imported.ReportSections[2].Rows.Single(r => r.List == "Prissatt").ActualCost, "Reimport matches by price list rather than row position");
+			Equal(410, imported.ReportSections[2].Rows.Single(r => r.List == "Offerter").ActualCost, "Reimport keeps distinct same-label entries");
+		}
+		finally
+		{
+			SqliteConnection.ClearAllPools();
+			if (File.Exists(path)) File.Delete(path);
+		}
+	}
+
+	private static IEnumerable<T> Descendants<T>(DependencyObject parent) where T : DependencyObject
+	{
+		for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+		{
+			var child = VisualTreeHelper.GetChild(parent, i);
+			if (child is T match) yield return match;
+			foreach (var descendant in Descendants<T>(child)) yield return descendant;
+		}
+	}
+
+	private static void CheckView()
+	{
+		var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+		var summary = Sample();
+		var report = new LubeSummaryReportView { DataContext = summary };
+		var window = new Window { Content = new ScrollViewer { Content = report }, Width = 1000, Height = 700, ShowInTaskbar = false };
+		try
+		{
+			window.Show();
+			window.UpdateLayout();
+			app.Dispatcher.Invoke(() => { }, DispatcherPriority.ContextIdle);
+			var input = Descendants<TextBox>(report).Single(t => ReferenceEquals(t.DataContext, summary.ReportSections[0].Rows[4]));
+			input.Text = "1234,50";
+			input.GetBindingExpression(TextBox.TextProperty)!.UpdateSource();
+			Equal(1234.5, summary.ReportSections[0].Rows[4].ActualCost, "Swedish decimal actual entry updates the model");
+			input.Text = "invalid";
+			input.GetBindingExpression(TextBox.TextProperty)!.UpdateSource();
+			Check(Validation.GetHasError(input), "Invalid input has visible WPF validation error");
+			Equal(1234.5, summary.ReportSections[0].Rows[4].ActualCost, "Invalid input does not overwrite saved model value");
+			input.Text = "";
+			input.GetBindingExpression(TextBox.TextProperty)!.UpdateSource();
+			Check(summary.ReportSections[0].Rows[4].ActualCost == null, "Clearing the textbox restores null fallback");
+			Check(!Validation.GetHasError(input), "Clearing input removes validation error");
+			foreach (var title in new[] { "MONTAGE", "LEVERANSER" })
+			{
+				var expander = Descendants<Expander>(report).Single(e => Equals(e.Header, title));
+				Check(expander.IsExpanded, $"{title} starts expanded");
+				expander.IsExpanded = false;
+				window.UpdateLayout();
+				Check(!((UIElement)expander.Content).IsVisible, $"{title} collapses its rows");
+				Equal(2410.5, summary.ActualProductionCost, $"Collapsing {title} does not affect totals");
+				expander.IsExpanded = true;
+			}
+		}
+		finally
+		{
+			window.Close();
+			app.Shutdown();
+		}
+	}
+}

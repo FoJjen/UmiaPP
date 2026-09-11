@@ -1,0 +1,43 @@
+<Window x:Class="UmiaPP.Views.ThemeEditorDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Tema - Redigera" Width="420" SizeToContent="Height" WindowStartupLocation="CenterOwner" ResizeMode="NoResize" Background="{StaticResource BackgroundBrush}">
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Redigera eller skapa nytt tema" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,12"/>
+
+        <StackPanel Grid.Row="1" Orientation="Vertical" Margin="0,0,0,8">
+            <StackPanel Orientation="Horizontal" Margin="0,4,0,0" VerticalAlignment="Center">
+                <TextBlock Width="140" VerticalAlignment="Center">Primary</TextBlock>
+                <Button x:Name="PrimaryColorButton" Width="160" Height="28" Click="PrimaryColorButton_Click"/>
+                <Border x:Name="PrimarySwatch" Width="28" Height="28" Margin="8,0,0,0" CornerRadius="3" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,4,0,0" VerticalAlignment="Center">
+                <TextBlock Width="140" VerticalAlignment="Center">Background</TextBlock>
+                <Button x:Name="BackgroundColorButton" Width="160" Height="28" Click="BackgroundColorButton_Click"/>
+                <Border x:Name="BackgroundSwatch" Width="28" Height="28" Margin="8,0,0,0" CornerRadius="3" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,4,0,0" VerticalAlignment="Center">
+                <TextBlock Width="140" VerticalAlignment="Center">Text</TextBlock>
+                <Button x:Name="TextPrimaryColorButton" Width="160" Height="28" Click="TextPrimaryColorButton_Click"/>
+                <Border x:Name="TextSwatch" Width="28" Height="28" Margin="8,0,0,0" CornerRadius="3" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"/>
+            </StackPanel>
+        </StackPanel>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,6,0,0">
+            <TextBlock Width="140" VerticalAlignment="Center">Spara som namn</TextBlock>
+            <TextBox x:Name="ThemeNameBox" Width="200"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button Content="Avbryt" Width="86" Margin="0,0,10,0" Click="Cancel_Click" Style="{StaticResource SecondaryButton}"/>
+            <Button Content="Spara och använd" Width="140" Click="Save_Click" Style="{StaticResource PrimaryButton}"/>
+        </StackPanel>
+    </Grid>
+</Window>
