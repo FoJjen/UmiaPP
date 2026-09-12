@@ -127,7 +127,8 @@ public static class SqliteSchemaSynchronizer
 
     private static string GetSqliteDefault(Type type)
     {
-        type = Nullable.GetUnderlyingType(type) ?? type;
+        if (Nullable.GetUnderlyingType(type) != null)
+            return "NULL";
 
         if (type == typeof(string))
             return "''";

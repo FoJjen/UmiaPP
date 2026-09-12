@@ -21,6 +21,11 @@ public partial class LubeCalculationTabView : UserControl
         }
 
         if (e.Row.Item is LubeSakvaraMangd item && DataContext is LubeCalculationTabViewModel viewModel)
-            _ = viewModel.SaveSakvaraPricesAsync(item);
+            _ = viewModel.SaveSakvaraSpecificationRowAsync(item);
+    }
+
+    private void LubeSummaryReportView_Loaded(object sender, System.Windows.RoutedEventArgs e)
+    {
+
     }
 }

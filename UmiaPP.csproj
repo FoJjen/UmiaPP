@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <Content Include=".validation\ActualCostChecks.cs.txt" />
+    <Content Include=".validation\AtaChecks.cs.txt" />
   </ItemGroup>
 
   <ItemGroup>
@@ -24,6 +25,7 @@
     <None Include=".github\upgrades\scenarios\dotnet-version-upgrade\tasks.md" />
     <None Include=".github\upgrades\scenarios\dotnet-version-upgrade\tasks\01-upgrade-project\progress-details.md" />
     <None Include=".validation\RunActualCostChecks.ps1" />
+    <None Include=".validation\RunAtaChecks.ps1" />
   </ItemGroup>
 
   <ItemGroup>
@@ -32,7 +34,6 @@
     <PackageReference Include="ClosedXML" Version="0.105.1" />
     <PackageReference Include="ExcelDataReader" Version="3.7.0" />
     <PackageReference Include="ExcelDataReader.DataSet" Version="3.7.0" />
-    <PackageReference Include="System.Text.Encoding.CodePages" Version="10.0.1" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3650.58" />
   </ItemGroup>
 

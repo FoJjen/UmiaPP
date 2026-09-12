@@ -19,6 +19,8 @@
         <Style TargetType="TextBlock">
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+        <Style x:Key="ReportRowText" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
             <Style.Triggers>
                 <DataTrigger Binding="{Binding IsHeader}" Value="True"><Setter Property="FontWeight" Value="Bold"/></DataTrigger>
                 <DataTrigger Binding="{Binding IsTotal}" Value="True"><Setter Property="FontWeight" Value="Bold"/></DataTrigger>
@@ -58,6 +60,9 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Grid MinHeight="19">
+                                        <Grid.Resources>
+                                            <Style TargetType="TextBlock" BasedOn="{StaticResource ReportRowText}"/>
+                                        </Grid.Resources>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="260"/>
                                             <ColumnDefinition Width="260"/>

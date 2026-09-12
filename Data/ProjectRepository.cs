@@ -8,6 +8,42 @@ public class ProjectRepository : IProjectRepository
 {
     private readonly Func<AppDbContext> _contextFactory;
 
+    public async Task SaveSakvaraSpecificationRowAsync(LubeSakvaraMangd item)
+    {
+        await using var context = _contextFactory();
+        var rows = context.Set<LubeSakvaraMangd>();
+        LubeSakvaraMangd saved;
+        if (item.Id == 0)
+        {
+            saved = new LubeSakvaraMangd { ProjectId = item.ProjectId };
+            rows.Add(saved);
+        }
+        else
+        {
+            saved = await rows.SingleOrDefaultAsync(x => x.Id == item.Id && x.ProjectId == item.ProjectId)
+                ?? throw new InvalidOperationException("Sakvaruraden finns inte längre i projektet.");
+        }
+
+        saved.Beteckning = item.Beteckning;
+        saved.Dim1 = item.Dim1;
+        saved.Dim2 = item.Dim2;
+        saved.Antal = item.Antal;
+        saved.Enhet = item.Enhet;
+        saved.Grupp = item.Grupp;
+        saved.Produkt = item.Produkt;
+        saved.Produktkod = item.Produktkod;
+        saved.Leverantor = item.Leverantor;
+        saved.PrisBto = item.PrisBto;
+        saved.RabattSats = item.RabattSats;
+        saved.PrisNto = item.PrisNto;
+        saved.Offertpris = item.Offertpris;
+        saved.Slutpris = item.Slutpris;
+        saved.ArKopt = item.ArKopt;
+        saved.Anteckningar = item.Anteckningar;
+        await context.SaveChangesAsync();
+        item.Id = saved.Id;
+    }
+
     public ProjectRepository(Func<AppDbContext>? contextFactory = null)
     {
         _contextFactory = contextFactory ?? (() => new AppDbContext());
@@ -76,6 +112,24 @@ public class ProjectRepository : IProjectRepository
             ?? throw new InvalidOperationException($"Projektet med ID {projectId} hittades inte.");
         project.SalesPrice = salesPrice;
         project.BudgetedCost = budgetedCost;
+        await context.SaveChangesAsync();
+    }
+
+    public async Task SaveAtaSummaryAsync(int projectId, string summaryJson)
+    {
+        await using var context = _contextFactory();
+        var project = await context.Projects.FirstOrDefaultAsync(p => p.Id == projectId)
+            ?? throw new InvalidOperationException($"Projektet med ID {projectId} hittades inte.");
+        project.AtaSummaryJson = summaryJson;
+        await context.SaveChangesAsync();
+    }
+
+    public async Task SaveAtaOwnCostAsync(int projectId, decimal? ownCost)
+    {
+        await using var context = _contextFactory();
+        var project = await context.Projects.FirstOrDefaultAsync(p => p.Id == projectId)
+            ?? throw new InvalidOperationException($"Projektet med ID {projectId} hittades inte.");
+        project.AtaOwnCost = ownCost;
         await context.SaveChangesAsync();
     }
 

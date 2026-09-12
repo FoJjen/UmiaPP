@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "UmiaPP": {
+      "commandName": "Project",
+      "debugEngines": "managed-dotnet"
+    }
+  }
+}

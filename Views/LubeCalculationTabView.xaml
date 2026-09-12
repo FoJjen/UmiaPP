@@ -83,243 +83,42 @@
             <TabItem Header="{DynamicResource SubTabSammandrag}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
                     <StackPanel>
-                    <views:LubeSummaryReportView DataContext="{Binding Summary}">
-                        <views:LubeSummaryReportView.Style>
-                            <Style TargetType="views:LubeSummaryReportView">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding ReportSections.Count}" Value="0"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </views:LubeSummaryReportView.Style>
-                    </views:LubeSummaryReportView>
-                    <StackPanel Margin="0,15,0,25" MaxWidth="1050" HorizontalAlignment="Left">
-                        <StackPanel.Style>
-                            <Style TargetType="StackPanel">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding Summary.ReportSections.Count}" Value="0"><Setter Property="Visibility" Value="Visible"/></DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </StackPanel.Style>
-
-                        <!-- MONTAGE -->
-                        <Border BorderBrush="#124E78" BorderThickness="0,0,0,2" Margin="0,0,0,8" Padding="0,0,0,4">
-                            <TextBlock Text="MONTAGE" FontWeight="Bold" FontSize="15" Foreground="#124E78"/>
-                        </Border>
-                        <DataGrid ItemsSource="{Binding Summary.MontageGrupper}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column" GridLinesVisibility="All">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="PRODUKTGRUPP" Binding="{Binding Produktgrupp}" Width="260" FontWeight="SemiBold"/>
-                                <DataGridTextColumn Header="LISTA" Binding="{Binding Lista}" Width="220"/>
-                                <DataGridTextColumn Header="TIM." Binding="{Binding Timmar, StringFormat={}{0:N0}}" Width="120">
-                                    <DataGridTextColumn.ElementStyle>
-                                        <Style TargetType="TextBlock"><Setter Property="HorizontalAlignment" Value="Right"/></Style>
-                                    </DataGridTextColumn.ElementStyle>
-                                </DataGridTextColumn>
-                            </DataGrid.Columns>
-                        </DataGrid>
-
-                        <Grid Margin="0,4,0,12">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="480"/><ColumnDefinition Width="120"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                            <TextBlock Text="SUMMA FÖRE JUSTERING" FontWeight="Bold"/>
-                            <TextBlock Grid.Column="1" Text="{Binding Summary.SummaForeJusteringTimmar, StringFormat={}{0:N0}}" FontWeight="Bold" HorizontalAlignment="Right"/>
-                        </Grid>
-
-                        <Grid Margin="0,0,0,12">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="480"/><ColumnDefinition Width="120"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                            <TextBlock Text="Projektanpassning"/>
-                            <TextBlock Grid.Column="1" Text="{Binding Summary.ProjektanpassningTimmar, StringFormat={}{0:N0}}" HorizontalAlignment="Right"/>
-                        </Grid>
-
-                        <!-- Del summeringar montage -->
-                        <Border Background="#EBF4FA" BorderBrush="#B8D5E5" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,20">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="340"/>
-                                    <ColumnDefinition Width="140"/>
-                                    <ColumnDefinition Width="120"/>
-                                    <ColumnDefinition Width="160"/>
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-
-                                <!-- Header -->
-                                <TextBlock Grid.Row="0" Grid.Column="2" Text="Kr/del" FontWeight="Bold" HorizontalAlignment="Right"/>
-                                <TextBlock Grid.Row="0" Grid.Column="3" Text="Kr. Nto" FontWeight="Bold" HorizontalAlignment="Right"/>
-
-                                <!-- Summa efter justering -->
-                                <TextBlock Grid.Row="1" Text="SUMMA EFTER JUSTERING" FontWeight="Bold" Margin="0,6,0,3"/>
-                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Summary.SummaEfterJusteringTimmar, StringFormat={}{0:N0} tim.}" HorizontalAlignment="Right" Margin="0,6,0,3"/>
-                                <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding Summary.MontageTimlon, StringFormat={}{0:N0}}" HorizontalAlignment="Right" Margin="0,6,0,3"/>
-                                <TextBlock Grid.Row="1" Grid.Column="3" Text="{Binding Summary.SummaEfterJusteringKrNto, StringFormat={}{0:N0}}" FontWeight="SemiBold" HorizontalAlignment="Right" Margin="0,6,0,3"/>
-
-                                <!-- Restidsersättning -->
-                                <TextBlock Grid.Row="2" Text="Restidsersättning" Margin="0,3,0,3"/>
-                                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Summary.RestidTimmar, StringFormat={}{0:N0} tim.}" HorizontalAlignment="Right" Margin="0,3,0,3"/>
-                                <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding Summary.RestidTimlon, StringFormat={}{0:N0}}" HorizontalAlignment="Right" Margin="0,3,0,3"/>
-                                <TextBlock Grid.Row="2" Grid.Column="3" Text="{Binding Summary.RestidKrNto, StringFormat={}{0:N0}}" HorizontalAlignment="Right" Margin="0,3,0,3"/>
-
-                                <!-- Reskostnad -->
-                                <TextBlock Grid.Row="3" Text="Reskostnad" Margin="0,3,0,3"/>
-                                <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Summary.ReskostnadKm, StringFormat={}{0:N0} km}" HorizontalAlignment="Right" Margin="0,3,0,3"/>
-                                <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding Summary.ReskostnadKrPerKm, StringFormat={}{0:N0}}" HorizontalAlignment="Right" Margin="0,3,0,3"/>
-                                <TextBlock Grid.Row="3" Grid.Column="3" Text="{Binding Summary.ReskostnadKrNto, StringFormat={}{0:N0}}" HorizontalAlignment="Right" Margin="0,3,0,3"/>
-
-                                <!-- Summa montage -->
-                                <TextBlock Grid.Row="4" Text="SUMMA MONTAGE" FontWeight="Bold" Margin="0,8,0,0"/>
-                                <TextBlock Grid.Row="4" Grid.Column="3" Text="{Binding Summary.SummaMontageTotal, StringFormat={}{0:N0}}" FontWeight="Bold" FontSize="14" Foreground="#124E78" HorizontalAlignment="Right" Margin="0,8,0,0"/>
-                            </Grid>
-                        </Border>
-
-                        <!-- INJUSTERING MED MERA -->
-                        <Border BorderBrush="#124E78" BorderThickness="0,0,0,2" Margin="0,0,0,8" Padding="0,0,0,4">
-                            <TextBlock Text="INJUSTERING MED MERA" FontWeight="Bold" FontSize="15" Foreground="#124E78"/>
-                        </Border>
-                        <Border Background="#EBF4FA" BorderBrush="#B8D5E5" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,20">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="260"/>
-                                    <ColumnDefinition Width="220"/>
-                                    <ColumnDefinition Width="120"/>
-                                    <ColumnDefinition Width="120"/>
-                                    <ColumnDefinition Width="160"/>
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-
-                                <TextBlock Text="PRODUKTGRUPP" FontWeight="Bold"/>
-                                <TextBlock Grid.Column="1" Text="LISTA" FontWeight="Bold"/>
-                                <TextBlock Grid.Column="2" Text="TIM." FontWeight="Bold" HorizontalAlignment="Right"/>
-                                <TextBlock Grid.Column="3" Text="TIMLÖN" FontWeight="Bold" HorizontalAlignment="Right"/>
-                                <TextBlock Grid.Column="4" Text="Kr. Nto" FontWeight="Bold" HorizontalAlignment="Right"/>
-
-                                <TextBlock Grid.Row="1" Text="Injustering" Margin="0,6,0,4"/>
-                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Summary.InjusteringLista}" Margin="0,6,0,4"/>
-                                <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding Summary.InjusteringTimmar, StringFormat={}{0:N0}}" HorizontalAlignment="Right" Margin="0,6,0,4"/>
-                                <TextBlock Grid.Row="1" Grid.Column="3" Text="{Binding Summary.InjusteringTimlon, StringFormat={}{0:N0}}" HorizontalAlignment="Right" Margin="0,6,0,4"/>
-                                <TextBlock Grid.Row="1" Grid.Column="4" Text="{Binding Summary.InjusteringKrNto, StringFormat={}{0:N0}}" HorizontalAlignment="Right" Margin="0,6,0,4"/>
-
-                                <TextBlock Grid.Row="2" Text="SUMMA INJUSTERING" FontWeight="Bold" Margin="0,6,0,0"/>
-                                <TextBlock Grid.Row="2" Grid.Column="4" Text="{Binding Summary.SummaInjusteringTotal, StringFormat={}{0:N0}}" FontWeight="Bold" HorizontalAlignment="Right" Margin="0,6,0,0"/>
-                            </Grid>
-                        </Border>
-
-                        <!-- LEVERANSER -->
-                        <Border BorderBrush="#124E78" BorderThickness="0,0,0,2" Margin="0,0,0,8" Padding="0,0,0,4">
-                            <TextBlock Text="LEVERANSER" FontWeight="Bold" FontSize="15" Foreground="#124E78"/>
-                        </Border>
-                        <DataGrid ItemsSource="{Binding Summary.LeveransGrupper}" AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column" GridLinesVisibility="All">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="PRODUKTGRUPP" Binding="{Binding Produktgrupp}" Width="260" FontWeight="SemiBold"/>
-                                <DataGridTextColumn Header="PRISLISTA" Binding="{Binding Lista}" Width="220"/>
-                                <DataGridTextColumn Header="Kr. Bto" Binding="{Binding PrisBto, StringFormat={}{0:N0}}" Width="120">
-                                    <DataGridTextColumn.ElementStyle>
-                                        <Style TargetType="TextBlock"><Setter Property="HorizontalAlignment" Value="Right"/></Style>
-                                    </DataGridTextColumn.ElementStyle>
-                                </DataGridTextColumn>
-                                <DataGridTextColumn Header="%" Binding="{Binding RabattSats, StringFormat={}{0:N0}}" Width="80">
-                                    <DataGridTextColumn.ElementStyle>
-                                        <Style TargetType="TextBlock"><Setter Property="HorizontalAlignment" Value="Right"/></Style>
-                                    </DataGridTextColumn.ElementStyle>
-                                </DataGridTextColumn>
-                                <DataGridTextColumn Header="Kr. Nto" Binding="{Binding PrisNto, StringFormat={}{0:N0}}" Width="160">
-                                    <DataGridTextColumn.ElementStyle>
-                                        <Style TargetType="TextBlock"><Setter Property="HorizontalAlignment" Value="Right"/></Style>
-                                    </DataGridTextColumn.ElementStyle>
-                                </DataGridTextColumn>
-                            </DataGrid.Columns>
-                        </DataGrid>
-
-                        <Border Background="#EBF4FA" BorderBrush="#B8D5E5" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,10,0,20">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="480"/>
-                                    <ColumnDefinition Width="200"/>
-                                    <ColumnDefinition Width="160"/>
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-
-                                <TextBlock Text="SUMMA FÖRE JUSTERING" FontWeight="Bold"/>
-                                <TextBlock Grid.Column="2" Text="{Binding Summary.LeveransSummaForeJustering, StringFormat={}{0:N0}}" FontWeight="Bold" HorizontalAlignment="Right"/>
-
-                                <TextBlock Grid.Row="1" Text="Frakter" Margin="0,5,0,2"/>
-                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Summary.FrakterPct, StringFormat={}{0:N0} %}" HorizontalAlignment="Right" Margin="0,5,0,2"/>
-                                <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding Summary.FrakterKr, StringFormat={}{0:N0}}" HorizontalAlignment="Right" Margin="0,5,0,2"/>
-
-                                <TextBlock Grid.Row="2" Text="Montagematerial" Margin="0,2,0,5"/>
-                                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Summary.MontagematerialPct, StringFormat={}{0:N0} %}" HorizontalAlignment="Right" Margin="0,2,0,5"/>
-                                <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding Summary.MontagematerialKr, StringFormat={}{0:N0}}" HorizontalAlignment="Right" Margin="0,2,0,5"/>
-
-                                <TextBlock Grid.Row="3" Text="SUMMA LEVERANS" FontWeight="Bold" Margin="0,6,0,0"/>
-                                <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding Summary.SummaLeveransTotal, StringFormat={}{0:N0}}" FontWeight="Bold" FontSize="14" Foreground="#124E78" HorizontalAlignment="Right" Margin="0,6,0,0"/>
-                            </Grid>
-                        </Border>
-
-                        <!-- TOTAL PRODUKTIONSKOSTNAD -->
-                        <Border BorderBrush="#124E78" BorderThickness="0,0,0,2" Margin="0,0,0,8" Padding="0,0,0,4">
-                            <TextBlock Text="TOTAL PRODUKTIONSKOSTNAD" FontWeight="Bold" FontSize="15" Foreground="#124E78"/>
-                        </Border>
-                        <Border Background="#FFFFFF" BorderBrush="#124E78" BorderThickness="2" CornerRadius="6" Padding="14">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="480"/>
-                                    <ColumnDefinition Width="200"/>
-                                    <ColumnDefinition Width="160"/>
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-
-                                <TextBlock Text="Övrigt" Margin="0,3,0,3"/>
-                                <TextBlock Grid.Column="2" Text="{Binding Summary.OvrigtKr, StringFormat={}{0:N0}}" HorizontalAlignment="Right" Margin="0,3,0,3"/>
-
-                                <TextBlock Grid.Row="1" Text="Montage och injustering med mera" Margin="0,3,0,3"/>
-                                <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding Summary.MontageOchInjusteringKr, StringFormat={}{0:N0}}" HorizontalAlignment="Right" Margin="0,3,0,3"/>
-
-                                <TextBlock Grid.Row="2" Text="Leverans" Margin="0,3,0,3"/>
-                                <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding Summary.SummaLeveransTotal, StringFormat={}{0:N0}}" HorizontalAlignment="Right" Margin="0,3,0,3"/>
-
-                                <TextBlock Grid.Row="3" Text="Underentreprenader" Margin="0,3,0,3"/>
-                                <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding Summary.SummaUnderentreprenad, StringFormat={}{0:N0}}" HorizontalAlignment="Right" Margin="0,3,0,3"/>
-
-                                <Border Grid.Row="4" Grid.ColumnSpan="3" BorderBrush="#124E78" BorderThickness="0,1,0,0" Margin="0,8,0,0" Padding="0,8,0,0">
-                                    <Grid>
-                                        <TextBlock Text="TOTAL PRODUKTIONSKOSTNAD" FontWeight="Bold" FontSize="16" Foreground="#124E78"/>
-                                        <TextBlock Text="{Binding Summary.TotalProduktionskostnad, StringFormat={}{0:N0} kr}" FontWeight="Bold" FontSize="18" Foreground="#F26419" HorizontalAlignment="Right"/>
-                                    </Grid>
-                                </Border>
-                            </Grid>
-                        </Border>
-
-                    </StackPanel>
+                    <Border Width="885" HorizontalAlignment="Left" Margin="12" Padding="10" Background="White" BorderBrush="Black" BorderThickness="1" Language="sv-SE">
+                        <StackPanel>
+                            <StackPanel.Resources>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="FontFamily" Value="Arial"/><Setter Property="FontSize" Value="11"/>
+                                    <Setter Property="Foreground" Value="Black"/><Setter Property="Margin" Value="4,3"/>
+                                    <Setter Property="TextWrapping" Value="Wrap"/>
+                                </Style>
+                            </StackPanel.Resources>
+                            <TextBlock Text="ÄTA – separat sammanställning och utfall" FontSize="13" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding AtaStatus}"/>
+                            <UniformGrid Columns="2">
+                                <TextBlock Text="ÄTA arbetstid (h)"/><TextBlock Text="{Binding Outcome.Totals.WorkHours, StringFormat=N2}" TextAlignment="Right"/>
+                                <TextBlock Text="ÄTA intäkt (kr)"/><TextBlock Text="{Binding Outcome.Revenue, StringFormat=N0}" TextAlignment="Right"/>
+                                <TextBlock Text="ÄTA kostnad (kr)"/><TextBlock Text="{Binding Outcome.Cost, StringFormat=N0}" TextAlignment="Right"/>
+                                <TextBlock Text="ÄTA resultat (kr)"/><TextBlock Text="{Binding Outcome.Profit, StringFormat=N0}" TextAlignment="Right"/>
+                                <TextBlock Text="ÄTA marginal (%)"/><TextBlock Text="{Binding Outcome.Margin, StringFormat=N1}" TextAlignment="Right"/>
+                            </UniformGrid>
+                        </StackPanel>
+                    </Border>
+                    <views:LubeSummaryReportView DataContext="{Binding Summary}" Loaded="LubeSummaryReportView_Loaded"/>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
 
-            <!-- 2. Sakvaror (Exakt som Bild 1 Lubekalk rapport) -->
+            <!-- 2. Sakvaror (Bild 3 och Bild 4) -->
             <TabItem Header="{DynamicResource SubTabSakvarorSpec}" Visibility="{Binding SakvarorSpecTab.IsVisible, Converter={StaticResource BoolToVis}}">
                 <Grid Margin="12" TextElement.FontFamily="Arial" TextElement.FontSize="11">
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
-                    <DataGrid Style="{StaticResource SakvaraReportGrid}" ItemsSource="{Binding FilteredSakvaror}" AutoGenerateColumns="False" IsReadOnly="False" CanUserAddRows="False" HeadersVisibility="Column" RowStyle="{StaticResource SakvaraRowStyle}" RowEditEnding="SakvarorGrid_RowEditEnding">
+                    <Button Content="Ny rad" Command="{Binding AddSakvaraRowCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,0,8" ToolTip="Observera att filtret rensas när en ny rad skapas"/>
+                    <Button Content="Kontrollera offertsumma" Command="{Binding CheckOfferTotalCommand}" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0"/>
+                    <DataGrid x:Name="SakvarorSpecificationGrid" Style="{StaticResource SakvaraReportGrid}" ItemsSource="{Binding FilteredSakvaror}" AutoGenerateColumns="False" IsReadOnly="False" CanUserAddRows="False" HeadersVisibility="Column" RowStyle="{StaticResource SakvaraRowStyle}" RowEditEnding="SakvarorGrid_RowEditEnding" Grid.Row="1">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Grupp" Binding="{Binding Grupp}" Width="80" IsReadOnly="True"/>
                             <DataGridTextColumn Header="Beteckning-D1-D2" Binding="{Binding Beteckning}" Width="150" FontWeight="SemiBold" IsReadOnly="True"/>
@@ -329,9 +128,21 @@
                             <DataGridTextColumn Header="Leverantör" Binding="{Binding Leverantor}" Width="140" IsReadOnly="True"/>
                             <DataGridTextColumn Header="Pris bto" Binding="{Binding PrisBto, StringFormat={}{0:N0}}" Width="95" IsReadOnly="True" ElementStyle="{StaticResource RightAlignCell}"/>
                             <DataGridTextColumn Header="%" Binding="{Binding RabattSats, StringFormat={}{0:N0}}" Width="50" IsReadOnly="True" ElementStyle="{StaticResource RightAlignCell}"/>
-                            <DataGridTextColumn Header="Pris nto" Binding="{Binding PrisNto, StringFormat={}{0:N0}}" Width="100" IsReadOnly="True" ElementStyle="{StaticResource RightAlignCell}"/>
-                            <DataGridTextColumn Header="Offertpris" Binding="{Binding Offertpris, StringFormat={}{0:N0}, UpdateSourceTrigger=LostFocus}" Width="110" ElementStyle="{StaticResource RightAlignCell}" EditingElementStyle="{StaticResource RightAlignEdit}"/>
-                            <DataGridTextColumn Header="Slutpris" Binding="{Binding Slutpris, StringFormat={}{0:N0}, UpdateSourceTrigger=LostFocus}" Width="110" ElementStyle="{StaticResource RightAlignCell}" EditingElementStyle="{StaticResource RightAlignEdit}"/>
+                            <DataGridTextColumn Header="Pris nto" Width="100" IsReadOnly="True" ElementStyle="{StaticResource RightAlignCell}">
+                                <DataGridTextColumn.Binding>
+                                    <Binding Path="PrisNto" Mode="TwoWay" UpdateSourceTrigger="PropertyChanged" ConverterCulture="sv-SE" ValidatesOnExceptions="True" StringFormat="N2"/>
+                                </DataGridTextColumn.Binding>
+                            </DataGridTextColumn>
+                            <views:SakvaraPriceColumn Header="Offertpris" IsFinalPrice="False" Width="110" ElementStyle="{StaticResource RightAlignCell}" EditingElementStyle="{StaticResource RightAlignEdit}">
+                                <views:SakvaraPriceColumn.Binding>
+                                    <Binding Path="Offertpris" Mode="TwoWay" UpdateSourceTrigger="PropertyChanged" ConverterCulture="sv-SE" ValidatesOnExceptions="True" StringFormat="N2"/>
+                                </views:SakvaraPriceColumn.Binding>
+                            </views:SakvaraPriceColumn>
+                            <views:SakvaraPriceColumn Header="Slutpris" IsFinalPrice="True" Width="110" ElementStyle="{StaticResource RightAlignCell}" EditingElementStyle="{StaticResource RightAlignEdit}">
+                                <views:SakvaraPriceColumn.Binding>
+                                    <Binding Path="Slutpris" Mode="TwoWay" UpdateSourceTrigger="PropertyChanged" ConverterCulture="sv-SE" ValidatesOnExceptions="True" StringFormat="N2"/>
+                                </views:SakvaraPriceColumn.Binding>
+                            </views:SakvaraPriceColumn>
                             <DataGridTextColumn Header="Differens" Binding="{Binding Differens, StringFormat={}{0:N0}}" Width="110" IsReadOnly="True" ElementStyle="{StaticResource RightAlignCell}"/>
                             <DataGridTemplateColumn Header="Köpt" Width="90" IsReadOnly="True">
                                 <DataGridTemplateColumn.CellTemplate>
@@ -350,12 +161,12 @@
                             <DataGridTextColumn Header="Anteckningar" Binding="{Binding Anteckningar, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" Width="260" IsReadOnly="False"/>
                         </DataGrid.Columns>
                     </DataGrid>
-                    <Border Grid.Row="1" Padding="6,2" BorderBrush="Black" BorderThickness="1,0,1,1" Background="White" MinHeight="19">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                            <TextBlock Text="Summa Slutpris (alla rader):" FontWeight="Bold" Foreground="Black" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                            <TextBlock Text="{Binding SumSlutpris, StringFormat={}{0:N2} kr}" FontWeight="Bold" Foreground="Black"/>
-                        </StackPanel>
-                    </Border>
+                    <views:SakvarorTotalsFooter Grid.Row="2"
+    TargetGrid="{Binding ElementName=SakvarorSpecificationGrid}"
+    PrisNto="{Binding SumPrisNto}"
+    Offertpris="{Binding SumOffertpris}"
+    Slutpris="{Binding SumSlutpris}"
+    Differens="{Binding SumDifferens}"/>
                 </Grid>
             </TabItem>
 
@@ -366,10 +177,7 @@
                         <DataGridTextColumn Header="Kod" Binding="{Binding Kod}" Width="100"/>
                         <DataGridTextColumn Header="Benämning" Binding="{Binding Benamning}" Width="*"/>
                         <DataGridTextColumn Header="Enhet" Binding="{Binding Enhet}" Width="70"/>
-                        <DataGridTextColumn Header="Mängd" Binding="{Binding Mangd, StringFormat=N2}" Width="90"/>
-                        <DataGridTextColumn Header="Material/enhet" Binding="{Binding MaterialKostnad, StringFormat=N2}" Width="110"/>
                         <DataGridTextColumn Header="Montage h/enhet" Binding="{Binding MontageTimmar, StringFormat=N2}" Width="120"/>
-                        <DataGridTextColumn Header="Material totalt" Binding="{Binding TotaltMaterial, StringFormat=N2}" Width="120"/>
                         <DataGridTextColumn Header="Timmar totalt" Binding="{Binding TotaltMontageTimmar, StringFormat=N2}" Width="120"/>
                     </DataGrid.Columns>
                 </DataGrid>
@@ -417,9 +225,21 @@
                             <DataGridTextColumn Header="Leverantör" Binding="{Binding Leverantor}" Width="140" IsReadOnly="True"/>
                             <DataGridTextColumn Header="Pris bto" Binding="{Binding PrisBto, StringFormat={}{0:N0}}" Width="95" IsReadOnly="True" ElementStyle="{StaticResource RightAlignCell}"/>
                             <DataGridTextColumn Header="%" Binding="{Binding RabattSats, StringFormat={}{0:N0}}" Width="50" IsReadOnly="True" ElementStyle="{StaticResource RightAlignCell}"/>
-                            <DataGridTextColumn Header="Pris nto" Binding="{Binding PrisNto, StringFormat={}{0:N0}}" Width="100" IsReadOnly="True" ElementStyle="{StaticResource RightAlignCell}"/>
-                            <DataGridTextColumn Header="Offertpris" Binding="{Binding Offertpris, StringFormat={}{0:N0}, UpdateSourceTrigger=LostFocus}" Width="110" ElementStyle="{StaticResource RightAlignCell}" EditingElementStyle="{StaticResource RightAlignEdit}"/>
-                            <DataGridTextColumn Header="Slutpris" Binding="{Binding Slutpris, StringFormat={}{0:N0}, UpdateSourceTrigger=LostFocus}" Width="110" ElementStyle="{StaticResource RightAlignCell}" EditingElementStyle="{StaticResource RightAlignEdit}"/>
+                            <DataGridTextColumn Header="Pris nto" Width="100" IsReadOnly="True" ElementStyle="{StaticResource RightAlignCell}">
+                                <DataGridTextColumn.Binding>
+                                    <Binding Path="PrisNto" Mode="TwoWay" UpdateSourceTrigger="PropertyChanged" ConverterCulture="sv-SE" ValidatesOnExceptions="True" StringFormat="N2"/>
+                                </DataGridTextColumn.Binding>
+                            </DataGridTextColumn>
+                            <views:SakvaraPriceColumn Header="Offertpris" IsFinalPrice="False" Width="110" ElementStyle="{StaticResource RightAlignCell}" EditingElementStyle="{StaticResource RightAlignEdit}">
+                                <views:SakvaraPriceColumn.Binding>
+                                    <Binding Path="Offertpris" Mode="TwoWay" UpdateSourceTrigger="PropertyChanged" ConverterCulture="sv-SE" ValidatesOnExceptions="True" StringFormat="N2"/>
+                                </views:SakvaraPriceColumn.Binding>
+                            </views:SakvaraPriceColumn>
+                            <views:SakvaraPriceColumn Header="Slutpris" IsFinalPrice="True" Width="110" ElementStyle="{StaticResource RightAlignCell}" EditingElementStyle="{StaticResource RightAlignEdit}">
+                                <views:SakvaraPriceColumn.Binding>
+                                    <Binding Path="Slutpris" Mode="TwoWay" UpdateSourceTrigger="PropertyChanged" ConverterCulture="sv-SE" ValidatesOnExceptions="True" StringFormat="N2"/>
+                                </views:SakvaraPriceColumn.Binding>
+                            </views:SakvaraPriceColumn>
                             <DataGridTextColumn Header="Differens" Binding="{Binding Differens, StringFormat={}{0:N0}}" Width="110" IsReadOnly="True" ElementStyle="{StaticResource RightAlignCell}"/>
                             <DataGridTemplateColumn Header="Köpt" Width="90" IsReadOnly="True">
                                 <DataGridTemplateColumn.CellTemplate>

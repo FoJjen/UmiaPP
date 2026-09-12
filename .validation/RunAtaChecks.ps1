@@ -1,0 +1,18 @@
+param([string]$WorkbookPath = '')
+$ErrorActionPreference = 'Stop'
+$root = Split-Path $PSScriptRoot -Parent
+$temp = Join-Path $PSScriptRoot ('.ata-checks-' + [guid]::NewGuid())
+New-Item -ItemType Directory -Path $temp | Out-Null
+try {
+	$project = [System.Security.SecurityElement]::Escape((Join-Path $root 'UmiaPP.csproj'))
+	$xml = '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0-windows</TargetFramework><UseWPF>true</UseWPF><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings></PropertyGroup><ItemGroup><ProjectReference Include="' + $project + '" /></ItemGroup></Project>'
+	Set-Content -Path (Join-Path $temp 'AtaChecks.csproj') -Value $xml -Encoding UTF8
+	Copy-Item (Join-Path $PSScriptRoot 'AtaChecks.cs.txt') (Join-Path $temp 'Program.cs')
+	dotnet build (Join-Path $temp 'AtaChecks.csproj') --verbosity quiet --tl:off -p:UseAppHost=false
+	if ($LASTEXITCODE -ne 0) { throw 'ATA regression harness build failed.' }
+	dotnet (Join-Path $temp 'bin\Debug\net10.0-windows\AtaChecks.dll') $temp $WorkbookPath
+	if ($LASTEXITCODE -ne 0) { throw 'ATA regression checks failed.' }
+}
+finally {
+	Remove-Item $temp -Recurse -Force -ErrorAction SilentlyContinue
+}

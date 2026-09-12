@@ -1,0 +1,268 @@
+using System.Globalization;
+using System.IO;
+using System.IO.Compression;
+using System.Security.Cryptography;
+using System.Text.Json;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Threading;
+using System.Xml.Linq;
+using ClosedXML.Excel;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+using UmiaPP.Data;
+using UmiaPP.Models;
+using UmiaPP.Services;
+using UmiaPP.ViewModels;
+using UmiaPP.Views;
+
+internal static class AtaChecks
+{
+	private static int _checks;
+	private static string _folder = "";
+
+	[STAThread]
+	private static void Main(string[] args)
+	{
+		CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("sv-SE");
+		_folder = args[0];
+		var importer = new AtaImportService();
+		if (args.Length > 1 && !string.IsNullOrWhiteSpace(args[1]))
+		{
+			var before = SHA256.HashData(File.ReadAllBytes(args[1]));
+			var template = importer.ImportAsync(args[1]).GetAwaiter().GetResult();
+			Check(template.Rows.Count == 0 && template.Totals.TotalHours == 0, "Supplied empty XLSM template imports successfully");
+			Check(before.SequenceEqual(SHA256.HashData(File.ReadAllBytes(args[1]))), "Source XLSM is unchanged byte-for-byte");
+		}
+		var path = Path.Combine(_folder, "sample.xlsx");
+		WriteWorkbook(path);
+		var summary = importer.ImportAsync(path).GetAwaiter().GetResult();
+		Check(summary.Rows.Count == 2, "Only populated summary rows imported; subtotal excluded");
+		Check(summary.ProjectName == "Testprojekt" && summary.ProjectNumber == "123", "Template metadata read");
+		Check(summary.Totals.ReportedAmount == 900 && summary.Totals.ApprovedAmount == 750, "Cached formulas and negative adjustments retained");
+		Check(summary.Totals.WorkHours == 9.5m && summary.Totals.ManagementHours == 2 && summary.Totals.OtherHours == 1, "Hour categories retained");
+		Check(summary.Totals.TotalHours == 12.5m && summary.Totals.MaterialAmount == 200, "Hour sum and material total correct");
+		Check(summary.Rows[0].Remarks == "Kontrollerad" && summary.Rows[0].Approval == "Ja", "Remarks and approval read");
+		Check(importer.ImportAsync(path).GetAwaiter().GetResult().Totals.ApprovedAmount == 750, "Repeated import does not accumulate totals");
+		CheckOutcome(summary);
+		CheckInvalidFiles(importer, path);
+		var viewModel = CheckPersistenceAndCommands(summary, path);
+		CheckView(viewModel);
+		SqliteConnection.ClearAllPools();
+		Console.WriteLine($"PASS: {_checks} ÄTA regression checks.");
+	}
+
+	private static void Check(bool result, string name)
+	{
+		if (!result) throw new InvalidOperationException(name);
+		_checks++;
+		Console.WriteLine($"PASS: {name}");
+	}
+
+	private static void WriteWorkbook(string path)
+	{
+		using var book = new XLWorkbook();
+		var sheet = book.AddWorksheet("Sammanställning");
+		var headers = new Dictionary<int, string>
+		{
+			[1] = "Nr", [2] = "Doktyp", [3] = "Teknik", [4] = "Ändrings-, tilläggs- och avgående arbeten, fråga/svar, underrättelse",
+			[9] = "Redovisad kostnad (kr)", [10] = "Godkänd kostnad (kr)", [11] = "Fakturerat (kr)",
+			[12] = "Arbetstid (h)", [13] = "Projekt-\nledning (h)", [14] = "Övrig tid (h)",
+			[15] = "Material (kr)", [16] = "Anmärkning", [21] = "Godk."
+		};
+		foreach (var (column, value) in headers) sheet.Cell(18, column).Value = value;
+		sheet.Cell("A6").Value = "Testprojekt";
+		sheet.Cell("G6").Value = "123";
+		sheet.Cell("A19").Value = "1";
+		sheet.Cell("B19").Value = "ÄTA";
+		sheet.Cell("C19").Value = "V";
+		sheet.Cell("D19").Value = "Tillägg";
+		sheet.Cell("I19").Value = 1000;
+		sheet.Cell("J19").FormulaA1 = "I19*0.8";
+		sheet.Cell("K19").Value = 500;
+		sheet.Cell("L19").Value = "10,5";
+		sheet.Cell("M19").Value = 2;
+		sheet.Cell("N19").Value = 1;
+		sheet.Cell("O19").Value = 250;
+		sheet.Cell("P19").Value = "Kontrollerad";
+		sheet.Cell("U19").Value = "Ja";
+		sheet.Cell("A20").Value = "2";
+		sheet.Cell("D20").Value = "Avgående";
+		sheet.Cell("I20").Value = -100;
+		sheet.Cell("J20").Value = -50;
+		sheet.Cell("L20").Value = -1;
+		sheet.Cell("O20").Value = -50;
+		sheet.Row(20).Hide();
+		sheet.Cell("D22").Value = "Summor";
+		sheet.Cell("J22").Value = 750;
+		book.SaveAs(path, new ClosedXML.Excel.SaveOptions { EvaluateFormulasBeforeSaving = true });
+	}
+
+	private static void CheckOutcome(AtaSummary summary)
+	{
+		var outcome = new AtaOutcome(summary, 300, 2000, 1000);
+		Check(outcome.Revenue == 2750, "Approved customer amount increases revenue, not costs");
+		Check(outcome.Cost == 1300 && outcome.Profit == 1450, "Own costs added exactly once; material not double-counted");
+		Check(outcome.Margin == 1450m / 2750m * 100, "Contribution margin uses combined revenue");
+		Check(new AtaOutcome(summary, null, 2000, 1000).Cost == null, "Missing own cost stays unknown");
+		Check(new AtaOutcome(summary, 0, 2000, 1000).Cost == 1000, "Explicit zero own cost is valid");
+		Check(new AtaOutcome(null, null, 2000, 1000).Profit == 1000, "Projects without ÄTA retain baseline outcome");
+		Check(new AtaOutcome(summary, 300, null, 1000).Profit == null, "Missing base revenue does not yield misleading profit");
+		Check(new AtaOutcome(summary, 300, -750, 1000).Margin == null, "Zero combined revenue does not divide by zero");
+	}
+
+	private static void CheckInvalidFiles(AtaImportService importer, string source)
+	{
+		var wrong = Path.Combine(_folder, "wrong.xlsx");
+		using (var book = new XLWorkbook()) { book.AddWorksheet("Other"); book.SaveAs(wrong); }
+		Reject(wrong, "Missing summary sheet rejected");
+		using (var book = new XLWorkbook(source)) { book.Worksheet(1).Cell("J18").Value = "Different"; book.SaveAs(wrong); }
+		Reject(wrong, "Incompatible header rejected");
+		using (var book = new XLWorkbook(source)) { book.Worksheet(1).Cell("L19").Value = "invalid"; book.SaveAs(wrong); }
+		Reject(wrong, "Malformed numeric value rejected instead of zeroed");
+		using (var book = new XLWorkbook(source)) { book.Worksheet(1).Cell("L19").Value = XLError.DivisionByZero; book.SaveAs(wrong); }
+		Reject(wrong, "Excel error rejected instead of zeroed");
+		File.Copy(source, wrong, true);
+		using (var zip = ZipFile.Open(wrong, ZipArchiveMode.Update))
+		{
+			var entry = zip.GetEntry("xl/worksheets/sheet1.xml")!;
+			XDocument doc;
+			using (var reader = new StreamReader(entry.Open())) doc = XDocument.Load(reader);
+			XNamespace ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+			doc.Descendants(ns + "c").Single(c => (string?)c.Attribute("r") == "J19").Element(ns + "v")?.Remove();
+			entry.Delete();
+			using var writer = new StreamWriter(zip.CreateEntry("xl/worksheets/sheet1.xml").Open());
+			doc.Save(writer);
+		}
+		Reject(wrong, "Formula without saved cache rejected without recalculation");
+		Reject(Path.Combine(_folder, "missing.xlsx"), "Missing linked file rejected");
+		return;
+
+		void Reject(string path, string name)
+		{
+			var failed = false;
+			try { importer.ImportAsync(path).GetAwaiter().GetResult(); }
+			catch (Exception ex) when (ex is InvalidDataException or FileNotFoundException) { failed = true; }
+			Check(failed, name);
+		}
+	}
+
+	private static AtaTabViewModel CheckPersistenceAndCommands(AtaSummary summary, string source)
+	{
+		var db = Path.Combine(_folder, "test.db");
+		using (var connection = new SqliteConnection($"Data Source={db}"))
+		{
+			connection.Open();
+			using var command = connection.CreateCommand();
+			command.CommandText = "CREATE TABLE Projects (Id INTEGER PRIMARY KEY, Name TEXT); INSERT INTO Projects VALUES (1, 'Legacy project');";
+			command.ExecuteNonQuery();
+		}
+		using (var context = new AppDbContext(db)) SqliteSchemaSynchronizer.SynchronizeAsync(context).GetAwaiter().GetResult();
+		var repo = new ProjectRepository(() => new AppDbContext(db));
+		var project = repo.GetByIdAsync(1).GetAwaiter().GetResult()!;
+		Check(project.AtaOwnCost == null && project.Name == "Legacy project", "Existing database upgraded; missing own cost remains null");
+		var baseline = new LubeCalculationSummary { ImportedAmounts = new() { [nameof(LubeCalculationSummary.TotalProduktionskostnad)] = 1000 } };
+		project.LubeSummaryJson = JsonSerializer.Serialize(baseline);
+		repo.SaveLubeSummaryAsync(1, project.LubeSummaryJson).GetAwaiter().GetResult();
+		repo.SaveSalesCalculationAsync(1, 2000, 1000).GetAwaiter().GetResult();
+		project.SalesPrice = 2000;
+		var data = new TestDataService(repo);
+		var dialogs = new TestDialogs { SelectedPath = source };
+		var vm = new AtaTabViewModel(project, data, dialogs);
+		var lube = new LubeCalculationTabViewModel(project, data, null!, dialogs);
+		var notifications = 0;
+		vm.SummaryChanged += (_, _) => { notifications++; lube.RefreshAtaSummary(); };
+		vm.LinkFileCommand.ExecuteAsync(null).GetAwaiter().GetResult();
+		Check(vm.Summary?.Totals.ApprovedAmount == 750 && notifications == 1, "Link command imports and notifies once");
+		Check(lube.Outcome.Revenue == 2750 && lube.Outcome.Cost == null, "Kalkylsammandrag sees revenue and missing own costs");
+		vm.OwnCostInput = "300,50";
+		vm.SaveOwnCostCommand.ExecuteAsync(null).GetAwaiter().GetResult();
+		Check(lube.Outcome.Cost == 1300.50m && lube.Outcome.Profit == 1449.50m, "Own-cost save updates the combined outcome");
+		var loaded = repo.GetByIdAsync(1).GetAwaiter().GetResult()!;
+		Check(loaded.AtaOwnCost == 300.50m && loaded.LubeSummaryJson == project.LubeSummaryJson, "Own costs persist without overwriting Lube data");
+		var reopened = new AtaTabViewModel(loaded, data, dialogs);
+		Check(reopened.Summary?.Rows.Count == 2 && reopened.Summary.FilePath == source, "Project reopen retains summary and linked path");
+		vm.RefreshCommand.ExecuteAsync(null).GetAwaiter().GetResult();
+		Check(lube.Outcome.Revenue == 2750 && vm.Summary?.Rows.Count == 2 && project.AtaOwnCost == 300.50m, "Refresh replaces snapshot and preserves own cost");
+		var oldJson = project.AtaSummaryJson;
+		dialogs.SelectedPath = Path.Combine(_folder, "missing.xlsx");
+		vm.LinkFileCommand.ExecuteAsync(null).GetAwaiter().GetResult();
+		Check(project.AtaSummaryJson == oldJson && dialogs.Errors.Count == 1, "Failed link preserves prior snapshot and path");
+		var moved = source + ".moved";
+		File.Move(source, moved);
+		try { vm.RefreshCommand.ExecuteAsync(null).GetAwaiter().GetResult(); }
+		finally { File.Move(moved, source); }
+		Check(project.AtaSummaryJson == oldJson && dialogs.Errors.Count == 2, "Unavailable linked file preserves saved data");
+		dialogs.SelectedPath = null;
+		vm.LinkFileCommand.ExecuteAsync(null).GetAwaiter().GetResult();
+		Check(project.AtaSummaryJson == oldJson, "Canceled selection leaves import unchanged");
+		vm.OwnCostInput = "invalid";
+		Check(!vm.SaveOwnCostCommand.CanExecute(null), "Malformed own cost cannot be saved");
+		vm.OwnCostInput = "0";
+		vm.SaveOwnCostCommand.ExecuteAsync(null).GetAwaiter().GetResult();
+		Check(repo.GetByIdAsync(1).GetAwaiter().GetResult()!.AtaOwnCost == 0, "Explicit zero persists");
+		vm.OwnCostInput = "";
+		vm.SaveOwnCostCommand.ExecuteAsync(null).GetAwaiter().GetResult();
+		Check(repo.GetByIdAsync(1).GetAwaiter().GetResult()!.AtaOwnCost == null, "Cleared own cost persists as unknown");
+		repo.SaveLubeCalculationDataAsync(1, [], [], [], [], [], [], [], baseline).GetAwaiter().GetResult();
+		Check(repo.GetByIdAsync(1).GetAwaiter().GetResult()!.AtaSummaryJson == oldJson, "Lube reimport preserves linked ÄTA snapshot");
+		var other = repo.CreateAsync(new Project { Name = "Other" }).GetAwaiter().GetResult();
+		Check(other.AtaSummaryJson == null && other.AtaOwnCost == null, "Projects do not share ÄTA data");
+		var missingProject = new Project { Id = -1, AtaSummaryJson = oldJson };
+		dialogs.SelectedPath = source;
+		var failedSave = new AtaTabViewModel(missingProject, data, dialogs);
+		failedSave.LinkFileCommand.ExecuteAsync(null).GetAwaiter().GetResult();
+		Check(missingProject.AtaSummaryJson == oldJson && dialogs.Errors.Count == 3, "Database save failure preserves last snapshot");
+		return vm;
+	}
+
+	private static void CheckView(AtaTabViewModel vm)
+	{
+		var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+		app.Resources["AccentButton"] = new Style(typeof(Button));
+		app.Resources["SecondaryButton"] = new Style(typeof(Button));
+		var view = new AtaTabView { DataContext = vm };
+		var window = new Window { Content = view, Width = 1200, Height = 800, ShowInTaskbar = false };
+		try
+		{
+			window.Show();
+			window.UpdateLayout();
+			app.Dispatcher.Invoke(() => { }, DispatcherPriority.ContextIdle);
+			var grid = Descendants<DataGrid>(view).Single();
+			Check(grid.IsReadOnly && grid.Items.Count == 3, "Read-only WPF summary displays totals and two entries");
+			Check(grid.Columns.Count == 13, "All template columns are displayed");
+			Check(Descendants<TextBlock>(view).Any(t => t.Text.Contains("12,50")), "WPF displays total hours using Swedish formatting");
+		}
+		finally { window.Close(); app.Shutdown(); }
+	}
+
+	private static IEnumerable<T> Descendants<T>(DependencyObject parent) where T : DependencyObject
+	{
+		for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+		{
+			var child = VisualTreeHelper.GetChild(parent, i);
+			if (child is T match) yield return match;
+			foreach (var nested in Descendants<T>(child)) yield return nested;
+		}
+	}
+
+	private sealed class TestDataService(IProjectRepository repository) : IDataService
+	{
+		public IProjectRepository Projects => repository;
+		public bool IsCloudConnected => false;
+		public Task InitializeAsync() => Task.CompletedTask;
+		public Task SyncWithCloudAsync() => Task.CompletedTask;
+	}
+
+	private sealed class TestDialogs : IDialogService
+	{
+		public string? SelectedPath { get; set; }
+		public List<string> Errors { get; } = [];
+		public bool Confirm(string message, string title) => true;
+		public void ShowMessage(string message, string title) { }
+		public void ShowError(string message, string title) => Errors.Add(message);
+		public string? OpenFileDialog(string filter, string title) => SelectedPath;
+		public string? SaveFileDialog(string defaultExt, string filter, string defaultFileName) => null;
+	}
+}

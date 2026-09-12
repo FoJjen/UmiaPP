@@ -17,16 +17,60 @@ public partial class LubeCalculationTabViewModel : ObservableObject
     private readonly IDialogService _dialogService;
     private readonly HashSet<LubeSakvaraMangd> _totalRows = [];
     private readonly SemaphoreSlim _summarySaveLock = new(1, 1);
+    private bool _ataLoadFailed;
 
-    partial void OnSummaryChanged(LubeCalculationSummary oldValue, LubeCalculationSummary newValue)
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Outcome))]
+    private AtaSummary? _ataSummary;
+
+    [ObservableProperty]
+    private string _ataStatus = string.Empty;
+
+    public AtaOutcome Outcome => new(AtaSummary,
+        _ataLoadFailed ? null : Project.SalesPrice, _ataLoadFailed ? null : GetBaseOutcomeCost(), Project.Discipline);
+
+    private decimal? GetBaseOutcomeCost()
     {
-        oldValue.ActualCostsChanged -= OnSummaryActualCostsChanged;
+        if (string.IsNullOrWhiteSpace(Project.LubeSummaryJson)) return null;
+        var cost = Summary.ActualProductionCost;
+        if (!double.IsFinite(cost)) return null;
+        try { return checked((decimal)cost); }
+        catch (OverflowException) { return null; }
+    }
+
+    public void RefreshAtaSummary()
+    {
+        _ataLoadFailed = false;
+        try
+        {
+            AtaSummary = string.IsNullOrWhiteSpace(Project.AtaSummaryJson) ? null
+                : JsonSerializer.Deserialize<AtaSummary>(Project.AtaSummaryJson)
+                    ?? throw new JsonException("ÄTA-sammanställningen är tom.");
+            AtaStatus = AtaSummary == null ? "Ingen ÄTA-fil är kopplad."
+                : $"ÄTA-intäkt för teknikområde {AtaSummary.GetDisciplineCode(Project.Discipline)} ingår i utfallet nedan.";
+        }
+        catch (JsonException)
+        {
+            _ataLoadFailed = true;
+            AtaSummary = null;
+            AtaStatus = "Den sparade ÄTA-sammanställningen kan inte läsas. Välj filen igen under ÄTA.";
+        }
+        OnPropertyChanged(nameof(Outcome));
+    }
+
+    partial void OnSummaryChanged(LubeCalculationSummary? oldValue, LubeCalculationSummary newValue)
+    {
+        if (oldValue != null)
+            oldValue.ActualCostsChanged -= OnSummaryActualCostsChanged;
         newValue.InitializeActualCosts();
         newValue.ActualCostsChanged += OnSummaryActualCostsChanged;
+        UpdateSpecificationOutcome();
+        OnPropertyChanged(nameof(Outcome));
     }
 
     private async void OnSummaryActualCostsChanged(object? sender, EventArgs e)
     {
+        OnPropertyChanged(nameof(Outcome));
         var project = Project;
         await _summarySaveLock.WaitAsync();
         try
@@ -47,11 +91,150 @@ public partial class LubeCalculationTabViewModel : ObservableObject
         }
     }
 
-    public double SumSlutpris => SakvarorMangder.Sum(x => x.Slutpris);
+    public double SumSlutpris => SakvarorMangder.Sum(x => x.EffectiveSlutpris);
 
-    partial void OnSakvarorMangderChanged(ObservableCollection<LubeSakvaraMangd> oldValue, ObservableCollection<LubeSakvaraMangd> newValue)
+    public double SumPrisNto => SakvarorMangder.Sum(x => x.PrisNto);
+    public double SumOffertpris => SakvarorMangder.Sum(x => x.EffectiveOffertpris);
+    public double SumDifferens => SakvarorMangder.Sum(x => x.Differens);
+
+    [RelayCommand]
+    private void CheckOfferTotal()
     {
-        oldValue.CollectionChanged -= OnSakvarorCollectionChanged;
+        var culture = System.Globalization.CultureInfo.GetCultureInfo("sv-SE");
+        var rows = SakvarorMangder.ToArray();
+        var report = new System.Text.StringBuilder();
+        report.AppendLine("KONTROLL AV OFFERTPRIS – ALLA PROJEKTRADER");
+        report.AppendLine($"Antal rader: {rows.Length}");
+        report.AppendLine("Filter påverkar inte summan. Negativa belopp ingår.");
+        report.AppendLine("Belopp visas utan tusentalsavskiljare och utan avrundning.");
+        report.AppendLine();
+        report.AppendLine("Rad | ID | Beteckning | Produkt | Inmatat offertpris | Visat offertpris");
+        for (var index = 0; index < rows.Length; index++)
+        {
+            var row = rows[index];
+            if (row.Offertpris == 0 && row.EffectiveOffertpris == 0) continue;
+            report.AppendLine($"{index + 1} | {row.Id} | {row.Beteckning} | {row.Produkt} | {row.Offertpris.ToString("G17", culture)} | {row.EffectiveOffertpris.ToString("G17", culture)}");
+        }
+        var total = rows.Sum(row => row.EffectiveOffertpris);
+        report.AppendLine();
+        report.AppendLine($"Summa inmatade offertpriser: {rows.Sum(row => row.Offertpris).ToString("N2", culture)} kr");
+        report.AppendLine($"Summa Offertpris inklusive Pris nto som reservvärde: {total.ToString("N2", culture)} kr");
+        report.AppendLine($"Summa före visningsavrundning: {total.ToString("G17", culture)}");
+        report.AppendLine($"Avvikelse från 135 910,00 kr: {(total - 135910d).ToString("N2", culture)} kr");
+        var duplicateIds = rows.Where(row => row.Id != 0).GroupBy(row => row.Id)
+            .Where(group => group.Count() > 1).ToArray();
+        foreach (var group in duplicateIds)
+            report.AppendLine($"VARNING: rad-ID {group.Key} förekommer {group.Count()} gånger i listan.");
+        report.AppendLine();
+        report.AppendLine("Kontrollen ändrar inga priser eller sparade uppgifter.");
+        var text = new System.Windows.Controls.TextBox
+        {
+            Text = report.ToString(),
+            IsReadOnly = true,
+            AcceptsReturn = true,
+            TextWrapping = System.Windows.TextWrapping.NoWrap,
+            VerticalScrollBarVisibility = System.Windows.Controls.ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = System.Windows.Controls.ScrollBarVisibility.Auto,
+            FontFamily = new System.Windows.Media.FontFamily("Consolas"),
+            FontSize = 13,
+            Margin = new System.Windows.Thickness(12)
+        };
+        var window = new System.Windows.Window
+        {
+            Title = "Kontrollera offertsumma – markera text och kopiera med Ctrl+C",
+            Width = 900,
+            Height = 600,
+            Content = text,
+            WindowStartupLocation = System.Windows.WindowStartupLocation.CenterOwner
+        };
+        if (System.Windows.Application.Current?.MainWindow is { } owner)
+            window.Owner = owner;
+        window.ShowDialog();
+    }
+
+    private void RefreshSpecificationTotals()
+    {
+        OnPropertyChanged(nameof(SumPrisNto));
+        OnPropertyChanged(nameof(SumOffertpris));
+        OnPropertyChanged(nameof(SumSlutpris));
+        OnPropertyChanged(nameof(SumDifferens));
+        UpdateSpecificationOutcome();
+    }
+
+    private bool _updatingSpecificationOutcome;
+
+    private void UpdateSpecificationOutcome()
+    {
+        if (_updatingSpecificationOutcome || SakvarorMangder.Count == 0) return;
+        static string Key(string value) => value.Trim().ToUpperInvariant();
+        var deliveryRows = Summary.ReportSections
+            .Where(section => Key(section.Title) == "LEVERANSER")
+            .SelectMany(section => section.Rows)
+            .Where(row => !row.IsHeader && !row.IsTotal && Key(row.Label) == "SAKVAROR")
+            .ToArray();
+        var priced = deliveryRows.Where(row => Key(row.List) is "PRISSATT" or "PRISATT").ToArray();
+        var quoted = deliveryRows.Where(row => Key(row.List) == "OFFERTER").ToArray();
+        // Require an unambiguous pair: do not apply a group total to multiple report rows.
+        if (priced.Length != 1 || quoted.Length != 1) return;
+        _updatingSpecificationOutcome = true;
+        try
+        {
+            priced[0].ActualCost = SakvarorMangder.Where(row => row.PrisNto != 0)
+                .Sum(row => row.EffectiveSlutpris);
+            quoted[0].ActualCost = SakvarorMangder.Where(row => row.PrisNto == 0)
+                .Sum(row => row.EffectiveSlutpris);
+            priced[0].CanEditActualCost = false;
+            quoted[0].CanEditActualCost = false;
+            OnPropertyChanged(nameof(Outcome));
+        }
+        finally
+        {
+            _updatingSpecificationOutcome = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task AddSakvaraRowAsync()
+    {
+        var project = Project;
+        var item = new LubeSakvaraMangd
+        {
+            ProjectId = project.Id,
+            Beteckning = "Ny rad",
+            Produkt = "Ny rad",
+            Enhet = "st"
+        };
+        try
+        {
+            await _dataService.Projects.SaveSakvaraSpecificationRowAsync(item);
+            if (!ReferenceEquals(project, Project)) return;
+            SakvarorMangder.Add(item);
+            FilterText = string.Empty;
+            if (!FilteredSakvaror.Contains(item))
+                FilteredSakvaror.Add(item);
+        }
+        catch (Exception ex)
+        {
+            _dialogService.ShowError($"Kunde inte skapa sakvaruraden: {ex.Message}", "Sparfel");
+        }
+    }
+
+    public async Task SaveSakvaraSpecificationRowAsync(LubeSakvaraMangd item)
+    {
+        try
+        {
+            await _dataService.Projects.SaveSakvaraSpecificationRowAsync(item);
+        }
+        catch (Exception ex)
+        {
+            _dialogService.ShowError($"Kunde inte spara sakvaruraden: {ex.Message}", "Sparfel");
+        }
+    }
+
+    partial void OnSakvarorMangderChanged(ObservableCollection<LubeSakvaraMangd>? oldValue, ObservableCollection<LubeSakvaraMangd> newValue)
+    {
+        if (oldValue != null)
+            oldValue.CollectionChanged -= OnSakvarorCollectionChanged;
         newValue.CollectionChanged += OnSakvarorCollectionChanged;
         TrackTotalRows();
     }
@@ -68,13 +251,18 @@ public partial class LubeCalculationTabViewModel : ObservableObject
             if (_totalRows.Add(row))
                 row.PropertyChanged += OnSakvaraPriceChanged;
         }
-        OnPropertyChanged(nameof(SumSlutpris));
+        RefreshSpecificationTotals();
     }
 
     private void OnSakvaraPriceChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(LubeSakvaraMangd.Slutpris))
-            OnPropertyChanged(nameof(SumSlutpris));
+        if (string.IsNullOrEmpty(e.PropertyName) ||
+            e.PropertyName is nameof(LubeSakvaraMangd.PrisNto)
+                or nameof(LubeSakvaraMangd.Antal)
+                or nameof(LubeSakvaraMangd.Offertpris)
+                or nameof(LubeSakvaraMangd.Slutpris)
+                or nameof(LubeSakvaraMangd.Differens))
+            RefreshSpecificationTotals();
     }
 
     [ObservableProperty]
@@ -244,6 +432,7 @@ public partial class LubeCalculationTabViewModel : ObservableObject
         FilterKalkyl();
         FilterSakvaror();
         CalculateTotals();
+        RefreshAtaSummary();
     }
 
     partial void OnFilterTextChanged(string value)
@@ -291,6 +480,7 @@ public partial class LubeCalculationTabViewModel : ObservableObject
     {
         SumTotalMaterial = KalkylPoster.Sum(x => x.TotaltMaterial);
         SumTotalTimmar = KalkylPoster.Sum(x => x.TotaltMontageTimmar);
+        OnPropertyChanged(nameof(Outcome));
     }
 
     public async Task SaveSakvaraPricesAsync(LubeSakvaraMangd item)

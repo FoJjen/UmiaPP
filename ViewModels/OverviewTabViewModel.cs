@@ -13,6 +13,48 @@ public partial class OverviewTabViewModel : ObservableObject
     private readonly IDataService _dataService;
     private readonly IDialogService _dialogService;
 
+    private Func<AtaOutcome>? _outcomeProvider;
+    private Func<(double Hours, double Quantity, int Drawings)>? _cardMetricsProvider;
+
+    public void SetCardMetricsProvider(Func<(double Hours, double Quantity, int Drawings)> provider)
+    {
+        _cardMetricsProvider = provider;
+        RefreshCardMetrics();
+    }
+
+    public void RefreshCardMetrics()
+    {
+        if (_cardMetricsProvider == null) return;
+        var metrics = _cardMetricsProvider();
+        TotalHours = metrics.Hours;
+        ComponentCount = metrics.Quantity;
+        DrawingCount = metrics.Drawings;
+    }
+
+    public event EventHandler? SalesCalculationChanged;
+
+    [ObservableProperty]
+    private decimal? _currentRevenue;
+
+    [ObservableProperty]
+    private decimal? _currentProfit;
+
+    public void SetOutcomeProvider(Func<AtaOutcome> provider)
+    {
+        _outcomeProvider = provider;
+        RefreshCurrentOutcome();
+    }
+
+    public void RefreshCurrentOutcome()
+    {
+        if (_outcomeProvider == null) return;
+        var outcome = _outcomeProvider();
+        CurrentRevenue = outcome.Revenue;
+        ProductionCost = outcome.Cost;
+        CurrentProfit = outcome.Profit;
+        CurrentTg = outcome.Margin;
+    }
+
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(SaveSalesCalculationCommand))]
     private string _salesPriceInput = string.Empty;
@@ -42,6 +84,7 @@ public partial class OverviewTabViewModel : ObservableObject
             await _dataService.Projects.SaveSalesCalculationAsync(Project.Id, sales, budget);
             Project.SalesPrice = sales;
             Project.BudgetedCost = budget;
+            SalesCalculationChanged?.Invoke(this, EventArgs.Empty);
             RefreshMetrics();
         }
         catch (Exception ex)
@@ -63,7 +106,7 @@ public partial class OverviewTabViewModel : ObservableObject
     private int _drawingCount;
 
     [ObservableProperty]
-    private int _componentCount;
+    private double _componentCount;
 
     public OverviewTabViewModel(Project project, IDataService dataService, IDialogService dialogService)
     {
@@ -118,5 +161,7 @@ public partial class OverviewTabViewModel : ObservableObject
         TotalHours = Project.LubeKalkylPoster?.Sum(x => x.TotaltMontageTimmar) ?? 0;
         TotalMaterialCost = Project.LubeKalkylPoster?.Sum(x => x.TotaltMaterial) ?? 0;
         ComponentCount = (Project.BluebeamMarkups?.Count ?? 0) + (Project.LubeSakvarorMangder?.Count ?? 0);
+        RefreshCardMetrics();
+        RefreshCurrentOutcome();
     }
 }

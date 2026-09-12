@@ -38,7 +38,12 @@ public partial class LubeSakvaraMangd : ObservableObject
     public string Beteckning { get; set; } = string.Empty;
     public string Dim1 { get; set; } = string.Empty;
     public string Dim2 { get; set; } = string.Empty;
-    public double Antal { get; set; }
+    private double _antal;
+    public double Antal
+    {
+        get => _antal;
+        set => SetProperty(ref _antal, value);
+    }
     public string Enhet { get; set; } = "st";
 
     public string Grupp { get; set; } = string.Empty;
@@ -47,7 +52,15 @@ public partial class LubeSakvaraMangd : ObservableObject
     public string Leverantor { get; set; } = string.Empty;
     public double PrisBto { get; set; }
     public double RabattSats { get; set; }
-    public double PrisNto { get; set; }
+    private double _prisNto;
+    public double PrisNto
+    {
+        get => _prisNto;
+        set
+        {
+            if (SetProperty(ref _prisNto, value)) NotifyEffectivePricesChanged();
+        }
+    }
 
     [ObservableProperty]
     private double _offertpris;
@@ -62,12 +75,33 @@ public partial class LubeSakvaraMangd : ObservableObject
     private string _anteckningar = string.Empty;
 
     [NotMapped]
-    public double Differens => Slutpris == 0 ? 0 : Slutpris - Offertpris;
+    public double EffectiveOffertpris => Offertpris != 0 ? Offertpris : PrisNto;
+
+    [NotMapped]
+    public double EffectiveSlutpris => Slutpris != 0 ? Slutpris : EffectiveOffertpris;
+
+    [NotMapped]
+    public bool IsOffertprisFallback => Offertpris == 0;
+
+    [NotMapped]
+    public bool IsSlutprisFallback => Slutpris == 0;
+
+    [NotMapped]
+    public double Differens => EffectiveSlutpris - EffectiveOffertpris;
 
     public Project? Project { get; set; }
 
-    partial void OnOffertprisChanged(double value) => OnPropertyChanged(nameof(Differens));
-    partial void OnSlutprisChanged(double value) => OnPropertyChanged(nameof(Differens));
+    private void NotifyEffectivePricesChanged()
+    {
+        OnPropertyChanged(nameof(EffectiveOffertpris));
+        OnPropertyChanged(nameof(EffectiveSlutpris));
+        OnPropertyChanged(nameof(IsOffertprisFallback));
+        OnPropertyChanged(nameof(IsSlutprisFallback));
+        OnPropertyChanged(nameof(Differens));
+    }
+
+    partial void OnOffertprisChanged(double value) => NotifyEffectivePricesChanged();
+    partial void OnSlutprisChanged(double value) => NotifyEffectivePricesChanged();
 }
 
 public class LubeSakvaraOffert

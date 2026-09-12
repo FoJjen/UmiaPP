@@ -14,6 +14,8 @@ public class Project
     public DateTime CreatedDate { get; set; } = DateTime.Now;
     public string? Description { get; set; }
     public string? LubeSummaryJson { get; set; }
+    public string? AtaSummaryJson { get; set; }
+    public decimal? AtaOwnCost { get; set; }
     public decimal? SalesPrice { get; set; }
     public decimal? BudgetedCost { get; set; }
 

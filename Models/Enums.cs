@@ -3,8 +3,9 @@ namespace UmiaPP.Models;
 public enum DisciplineType
 {
     Ventilation = 0,
-    Piping = 1,      // Rör
-    Electrical = 2   // El
+    Piping = 1,      // Rör / VS
+    Electrical = 2,  // El
+    Control = 3      // Styr / SÖE
 }
 
 public enum ProjectStatus

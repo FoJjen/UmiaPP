@@ -9,6 +9,8 @@ public interface IProjectRepository
     Task<Project> CreateAsync(Project project);
     Task<Project> UpdateAsync(Project project);
     Task SaveSalesCalculationAsync(int projectId, decimal salesPrice, decimal budgetedCost);
+    Task SaveAtaSummaryAsync(int projectId, string summaryJson);
+    Task SaveAtaOwnCostAsync(int projectId, decimal? ownCost);
     Task<bool> DeleteAsync(int id);
 
     // Ritningar
@@ -29,6 +31,8 @@ public interface IProjectRepository
         LubeCalculationSummary summary);
 
     Task UpdateSakvaraPricesAsync(LubeSakvaraMangd item);
+
+    Task SaveSakvaraSpecificationRowAsync(LubeSakvaraMangd item);
 
     Task SaveLubeSummaryAsync(int projectId, string summaryJson);
 

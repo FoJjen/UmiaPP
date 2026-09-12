@@ -1,3 +1,146 @@
-<UserControl x:Class="UmiaPP.Views.AtaTabView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <Grid Margin="0,28,0,0"><Border Style="{StaticResource ModernCard}" HorizontalAlignment="Center" VerticalAlignment="Top" Width="650"><StackPanel><TextBlock Text="{DynamicResource AtaHeading}" FontSize="22" FontWeight="SemiBold"/><TextBlock Text="{DynamicResource AtaDescription}" TextWrapping="Wrap" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,10,0,22"/><Button Content="{DynamicResource RegisterAta}" Command="{Binding RegisterAtaCommand}" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"/></StackPanel></Border></Grid>
+<UserControl x:Class="UmiaPP.Views.AtaTabView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Language="sv-SE">
+    <UserControl.Resources>
+        <Style x:Key="ReportText" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Arial"/><Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="Black"/><Setter Property="Margin" Value="6,3"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+        <Style x:Key="NumberText" TargetType="TextBlock" BasedOn="{StaticResource ReportText}">
+            <Setter Property="TextAlignment" Value="Right"/>
+        </Style>
+        <Style x:Key="HeaderLabel" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Arial"/><Setter Property="FontSize" Value="10"/><Setter Property="Foreground" Value="#555555"/><Setter Property="Margin" Value="4,2,4,0"/>
+        </Style>
+        <Style x:Key="HeaderValue" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Arial"/><Setter Property="FontSize" Value="11"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Foreground" Value="Black"/><Setter Property="Margin" Value="4,0,4,3"/>
+        </Style>
+        <Style x:Key="HeaderCellBorder" TargetType="Border">
+            <Setter Property="BorderBrush" Value="#A0A0A0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Background" Value="#F2F2F2"/><Setter Property="Padding" Value="4,2"/>
+        </Style>
+    </UserControl.Resources>
+    <Grid Margin="0,18,0,0">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        
+        <!-- Toolbar & Status -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+            <WrapPanel>
+                <Button Content="Välj ÄTA-fil…" Command="{Binding LinkFileCommand}" Style="{StaticResource AccentButton}" Margin="0,0,10,0"/>
+                <Button Content="Uppdatera från fil" Command="{Binding RefreshCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,16,0"/>
+                <CheckBox Content="{Binding CurrentDisciplineCode, StringFormat='Visa endast projektets teknik ({0})'}" IsChecked="{Binding FilterCurrentDisciplineOnly, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+            </WrapPanel>
+            <TextBlock Text="{Binding Summary.FilePath, Mode=OneWay}" TextWrapping="Wrap" Margin="0,6,0,2" Foreground="{StaticResource TextSecondaryBrush}"/>
+            <TextBlock Text="{Binding Summary.ImportedAt, StringFormat='Senast importerad: {0:yyyy-MM-dd HH:mm:ss}'}" Foreground="{StaticResource TextSecondaryBrush}"/>
+            <TextBlock Text="{Binding Status}" TextWrapping="Wrap" Margin="0,4,0,0" FontWeight="SemiBold"/>
+        </StackPanel>
+
+        <!-- Excel Liknande Projekthuvud -->
+        <Border Grid.Row="1" BorderBrush="Black" BorderThickness="1" Background="White" Margin="0,0,0,12">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="1.2*"/>
+                    <ColumnDefinition Width="1.5*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Rad 1 -->
+                <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource HeaderCellBorder}">
+                    <StackPanel><TextBlock Text="Avser projekt" Style="{StaticResource HeaderLabel}"/><TextBlock Text="{Binding Summary.ProjectName}" Style="{StaticResource HeaderValue}"/></StackPanel>
+                </Border>
+                <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource HeaderCellBorder}">
+                    <StackPanel><TextBlock Text="Projekt-/Order nr." Style="{StaticResource HeaderLabel}"/><TextBlock Text="{Binding Summary.ProjectNumber}" Style="{StaticResource HeaderValue}"/></StackPanel>
+                </Border>
+                <Border Grid.Row="0" Grid.Column="2" Style="{StaticResource HeaderCellBorder}">
+                    <StackPanel><TextBlock Text="Verksamhet" Style="{StaticResource HeaderLabel}"/><TextBlock Text="{Binding Summary.Business}" Style="{StaticResource HeaderValue}"/></StackPanel>
+                </Border>
+                <Border Grid.Row="0" Grid.Column="3" Style="{StaticResource HeaderCellBorder}">
+                    <StackPanel><TextBlock Text="Datum" Style="{StaticResource HeaderLabel}"/><TextBlock Text="{Binding Summary.Date}" Style="{StaticResource HeaderValue}"/></StackPanel>
+                </Border>
+                <Border Grid.Row="0" Grid.Column="4" Style="{StaticResource HeaderCellBorder}">
+                    <StackPanel><TextBlock Text="Rev. datum" Style="{StaticResource HeaderLabel}"/><TextBlock Text="{Binding Summary.RevisionDate}" Style="{StaticResource HeaderValue}"/></StackPanel>
+                </Border>
+
+                <!-- Rad 2 -->
+                <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Style="{StaticResource HeaderCellBorder}">
+                    <StackPanel><TextBlock Text="Beställare/kund" Style="{StaticResource HeaderLabel}"/><TextBlock Text="{Binding Summary.Customer}" Style="{StaticResource HeaderValue}"/></StackPanel>
+                </Border>
+                <Border Grid.Row="1" Grid.Column="3" Grid.ColumnSpan="2" Style="{StaticResource HeaderCellBorder}">
+                    <StackPanel><TextBlock Text="Beställare/Kundreferens" Style="{StaticResource HeaderLabel}"/><TextBlock Text="{Binding Summary.CustomerReference}" Style="{StaticResource HeaderValue}"/></StackPanel>
+                </Border>
+
+                <!-- Rad 3 -->
+                <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="5" Style="{StaticResource HeaderCellBorder}">
+                    <StackPanel><TextBlock Text="Projektledare" Style="{StaticResource HeaderLabel}"/><TextBlock Text="{Binding Summary.ProjectLeader}" Style="{StaticResource HeaderValue}"/></StackPanel>
+                </Border>
+
+                <!-- Rad 4 -->
+                <Border Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="5" Style="{StaticResource HeaderCellBorder}">
+                    <StackPanel><TextBlock Text="Projektansvarig" Style="{StaticResource HeaderLabel}"/><TextBlock Text="{Binding Summary.ProjectManager}" Style="{StaticResource HeaderValue}"/></StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- ÄTA Tabell med DataGrid och Exportering -->
+        <Grid Grid.Row="2" Background="White">
+            <DataGrid ItemsSource="{Binding DisplayRows}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False" CanUserSortColumns="False"
+                      FontFamily="Arial" FontSize="11" Foreground="Black" Background="White" RowBackground="White" AlternatingRowBackground="#EDF5FA"
+                      GridLinesVisibility="All" HorizontalGridLinesBrush="Black" VerticalGridLinesBrush="Black" BorderBrush="Black" BorderThickness="1" HeadersVisibility="Column" ColumnHeaderHeight="NaN">
+                <DataGrid.ColumnHeaderStyle>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="#99CCFF"/><Setter Property="Foreground" Value="Black"/>
+                        <Setter Property="FontFamily" Value="Arial"/><Setter Property="FontSize" Value="11"/><Setter Property="FontWeight" Value="Bold"/>
+                        <Setter Property="Padding" Value="6,4"/><Setter Property="BorderBrush" Value="Black"/><Setter Property="BorderThickness" Value="0,0,1,1"/>
+                        <Setter Property="ContentTemplate"><Setter.Value><DataTemplate><TextBlock Text="{Binding}" TextWrapping="Wrap"/></DataTemplate></Setter.Value></Setter>
+                    </Style>
+                </DataGrid.ColumnHeaderStyle>
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Description}" Value="Summor"><Setter Property="FontWeight" Value="Bold"/><Setter Property="Background" Value="#DDEBF7"/></DataTrigger>
+                            <DataTrigger Binding="{Binding Description, StringFormat='Summor ({0})'}" Value="Summor (VE)"><Setter Property="FontWeight" Value="Bold"/><Setter Property="Background" Value="#DDEBF7"/></DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Nr" Binding="{Binding Number, Mode=OneWay}" Width="50" ElementStyle="{StaticResource ReportText}"/>
+                    <DataGridTextColumn Header="Doktyp" Binding="{Binding DocumentType, Mode=OneWay}" Width="65" ElementStyle="{StaticResource ReportText}"/>
+                    <DataGridTextColumn Header="Teknik" Binding="{Binding Discipline, Mode=OneWay}" Width="60" ElementStyle="{StaticResource ReportText}"/>
+                    <DataGridTextColumn Header="Ändrings-, tilläggs- och avgående arbeten, fråga/svar, underrättelse" Binding="{Binding Description, Mode=OneWay}" Width="*" ElementStyle="{StaticResource ReportText}"/>
+                    <DataGridTextColumn Header="Redovisad kostnad (kr)" Binding="{Binding ReportedAmount, Mode=OneWay, StringFormat={}{0:N0}}" Width="105" ElementStyle="{StaticResource NumberText}"/>
+                    <DataGridTextColumn Header="Godkänd kostnad (kr)" Binding="{Binding ApprovedAmount, Mode=OneWay, StringFormat={}{0:N0}}" Width="105" ElementStyle="{StaticResource NumberText}"/>
+                    <DataGridTextColumn Header="Fakturerat (kr)" Binding="{Binding InvoicedAmount, Mode=OneWay, StringFormat={}{0:N0}}" Width="95" ElementStyle="{StaticResource NumberText}"/>
+                    <DataGridTextColumn Header="Arbetstid (h)" Binding="{Binding WorkHours, Mode=OneWay, StringFormat={}{0:N1}}" Width="80" ElementStyle="{StaticResource NumberText}"/>
+                    <DataGridTextColumn Header="Projekt-ledning (h)" Binding="{Binding ManagementHours, Mode=OneWay, StringFormat={}{0:N1}}" Width="85" ElementStyle="{StaticResource NumberText}"/>
+                    <DataGridTextColumn Header="Övrig tid (h)" Binding="{Binding OtherHours, Mode=OneWay, StringFormat={}{0:N1}}" Width="80" ElementStyle="{StaticResource NumberText}"/>
+                    <DataGridTextColumn Header="Material (kr)" Binding="{Binding MaterialAmount, Mode=OneWay, StringFormat={}{0:N0}}" Width="90" ElementStyle="{StaticResource NumberText}"/>
+                    <DataGridTextColumn Header="Anmärkning" Binding="{Binding Remarks, Mode=OneWay}" Width="140" ElementStyle="{StaticResource ReportText}"/>
+                    <DataGridTextColumn Header="Godk." Binding="{Binding Approval, Mode=OneWay}" Width="60" ElementStyle="{StaticResource ReportText}"/>
+                    <DataGridTemplateColumn Header="Underlag" Width="120">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Content="Skapa underlag" Command="{Binding DataContext.CreateInvoiceDocumentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Padding="6,2" Margin="3,2">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Number}" Value="">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Grid>
+    </Grid>
 </UserControl>

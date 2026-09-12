@@ -2,19 +2,23 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="0,18,0,0">
         <TextBlock Text="{DynamicResource OverviewHeading}" FontSize="20" FontWeight="SemiBold"/>
         <TextBlock Text="{DynamicResource OverviewDescription}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,8,0,24"/>
-        <UniformGrid Columns="4">
+        <UniformGrid Columns="4" Language="sv-SE">
             <Border Style="{StaticResource ModernCard}" Margin="0,0,12,0"><StackPanel><TextBlock Text="{DynamicResource TotalHours}" Foreground="{StaticResource TextSecondaryBrush}"/><TextBlock Text="{Binding TotalHours, StringFormat={}{0:N1} h}" FontSize="27" FontWeight="SemiBold" Margin="0,6,0,0"/></StackPanel></Border>
-            <Border Style="{StaticResource ModernCard}" Margin="0,0,12,0"><StackPanel><TextBlock Text="{DynamicResource TotalMaterial}" Foreground="{StaticResource TextSecondaryBrush}"/><TextBlock Text="{Binding TotalMaterialCost, StringFormat={}{0:N0} kr}" FontSize="27" FontWeight="SemiBold" Margin="0,6,0,0"/></StackPanel></Border>
+            <Border Style="{StaticResource ModernCard}" Margin="0,0,12,0"><StackPanel><TextBlock Text="Total produktionskostnad – utfall" Foreground="{StaticResource TextSecondaryBrush}"/><TextBlock Text="{Binding ProductionCost, StringFormat={}{0:N2} kr, TargetNullValue=—}" FontSize="27" FontWeight="SemiBold" Margin="0,6,0,0"/></StackPanel></Border>
             <Border Style="{StaticResource ModernCard}" Margin="0,0,12,0"><StackPanel><TextBlock Text="{DynamicResource DrawingCount}" Foreground="{StaticResource TextSecondaryBrush}"/><TextBlock Text="{Binding DrawingCount}" FontSize="27" FontWeight="SemiBold" Margin="0,6,0,0"/></StackPanel></Border>
-            <Border Style="{StaticResource ModernCard}"><StackPanel><TextBlock Text="{DynamicResource ComponentCount}" Foreground="{StaticResource TextSecondaryBrush}"/><TextBlock Text="{Binding ComponentCount}" FontSize="27" FontWeight="SemiBold" Margin="0,6,0,0"/></StackPanel></Border>
+            <Border Style="{StaticResource ModernCard}"><StackPanel><TextBlock Text="Sakvaror – summa antal" Foreground="{StaticResource TextSecondaryBrush}"/><TextBlock Text="{Binding ComponentCount, StringFormat={}{0:0.##}}" FontSize="27" FontWeight="SemiBold" Margin="0,6,0,0"/></StackPanel></Border>
         </UniformGrid>
         <Border Style="{StaticResource ModernCard}" Margin="0,24,0,0">
             <StackPanel>
                 <TextBlock Text="{DynamicResource CurrentTg}" FontSize="18" FontWeight="SemiBold"/>
                 <TextBlock Text="{Binding CurrentTg, StringFormat={}{0:N1} %, TargetNullValue=—}" FontSize="32" FontWeight="SemiBold" Margin="0,6,0,8"/>
+                <TextBlock Text="Aktuell intäkt inklusive godkänd ÄTA för projektets teknik" Foreground="{StaticResource TextSecondaryBrush}"/>
+                <TextBlock Text="{Binding CurrentRevenue, StringFormat={}{0:N2} kr, TargetNullValue=—}"/>
                 <TextBlock Text="{DynamicResource LubeProductionCost}" Foreground="{StaticResource TextSecondaryBrush}"/>
-                <TextBlock Text="{Binding ProductionCost, StringFormat=N2, TargetNullValue=—}"/>
-                <TextBlock Text="{DynamicResource TgBasis}" TextWrapping="Wrap" Margin="0,8,0,0" Foreground="{StaticResource TextSecondaryBrush}"/>
+                <TextBlock Text="{Binding ProductionCost, StringFormat={}{0:N2} kr, TargetNullValue=—}"/>
+                <TextBlock Text="Aktuellt resultat" Foreground="{StaticResource TextSecondaryBrush}"/>
+                <TextBlock Text="{Binding CurrentProfit, StringFormat={}{0:N2} kr, TargetNullValue=—}"/>
+                <TextBlock Text="TG = (aktuell intäkt − aktuell kostnad) / aktuell intäkt × 100. Uppdateras direkt från Kalkylsammandragets utfall. Prisändringar förhandsvisas under redigering och sparas när raden bekräftas." TextWrapping="Wrap" Margin="0,8,0,0" Foreground="{StaticResource TextSecondaryBrush}"/>
             </StackPanel>
         </Border>
         <Border Style="{StaticResource ModernCard}" Margin="0,24,0,0">
