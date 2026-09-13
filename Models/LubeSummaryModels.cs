@@ -70,7 +70,17 @@ public class LubeCalculationSummary : ObservableObject
     public event EventHandler? ActualCostsChanged;
 
     [JsonIgnore]
-    public double ActualProductionCost => TotalProduktionskostnad + Delta("montage", "injustering", "delivery", "deliveryExtra", "subcontract", "other");
+    public double ActualProductionCost
+    {
+        get
+        {
+            var totalRow = ReportSections.SelectMany(section => section.Rows)
+                .LastOrDefault(row => Normalize(row.Label) == "TOTAL PRODUKTIONSKOSTNAD");
+            if (totalRow?.ActualTotal is double total && double.IsFinite(total))
+                return total;
+            return TotalProduktionskostnad + Delta("montage", "injustering", "delivery", "deliveryExtra", "subcontract", "other");
+        }
+    }
 
     public void InitializeActualCosts()
     {

@@ -98,6 +98,7 @@ public class ProjectRepository : IProjectRepository
         existing.Status = project.Status;
         existing.Discipline = project.Discipline;
         existing.Description = project.Description;
+        existing.SalesPrice = project.SalesPrice;
 
         await context.SaveChangesAsync();
         return existing;
@@ -171,6 +172,42 @@ public class ProjectRepository : IProjectRepository
         context.Drawings.Remove(d);
         await context.SaveChangesAsync();
         return true;
+    }
+
+    public async Task SavePurchaseListsAsync(int projectId, List<Drawing> drawings)
+    {
+        await using var context = _contextFactory();
+        if (!await context.Projects.AnyAsync(p => p.Id == projectId))
+            throw new InvalidOperationException("Projektet finns inte längre.");
+        var saved = new List<(Drawing Input, Drawing Stored)>();
+        foreach (var input in drawings)
+        {
+            if (input.ProjectId != projectId)
+                throw new InvalidOperationException("Ritningen tillhör ett annat projekt.");
+            Drawing stored;
+            if (input.Id == 0)
+            {
+                stored = new Drawing { ProjectId = projectId };
+                context.Drawings.Add(stored);
+            }
+            else
+            {
+                stored = await context.Drawings.SingleOrDefaultAsync(d => d.Id == input.Id && d.ProjectId == projectId)
+                    ?? throw new InvalidOperationException("Ritningen finns inte längre i projektet.");
+            }
+            stored.DrawingNumber = input.DrawingNumber;
+            stored.SheetTitle = input.SheetTitle;
+            stored.Revision = input.Revision;
+            stored.Date = input.Date;
+            stored.FilePath = input.FilePath;
+            stored.Notes = input.Notes;
+            stored.PurchaseItemsJson = input.PurchaseItemsJson;
+            stored.PurchaseImportSource = input.PurchaseImportSource;
+            saved.Add((input, stored));
+        }
+        // One SaveChanges transaction: a rejected import cannot leave half the lists replaced.
+        await context.SaveChangesAsync();
+        foreach (var pair in saved) pair.Input.Id = pair.Stored.Id;
     }
 
     public async Task SaveLubeCalculationDataAsync(

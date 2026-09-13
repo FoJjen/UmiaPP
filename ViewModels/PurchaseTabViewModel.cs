@@ -103,6 +103,7 @@ public partial class PurchaseTabViewModel : ObservableObject
         Markups = new ObservableCollection<BluebeamMarkupItem>(Project.BluebeamMarkups ?? []);
 
         UpdateSummary();
+        InitializePurchaseLists();
     }
 
     private void UpdateSummary()
@@ -141,12 +142,7 @@ public partial class PurchaseTabViewModel : ObservableObject
 
     partial void OnSelectedDrawingChanged(Drawing? value)
     {
-        if (value != null && !string.IsNullOrWhiteSpace(value.FilePath) &&
-            File.Exists(value.FilePath) &&
-            string.Equals(Path.GetExtension(value.FilePath), ".pdf", StringComparison.OrdinalIgnoreCase))
-        {
-            ShowPdf(value.FilePath);
-        }
+        SelectPurchaseList(value);
     }
 
     private void ShowPdf(string path)

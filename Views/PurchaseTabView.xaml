@@ -1,41 +1,94 @@
 <UserControl x:Class="UmiaPP.Views.PurchaseTabView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf">
+             xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+             Language="sv-SE">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
     </UserControl.Resources>
-    <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="0,18,0,0">
-        <DockPanel Margin="0,0,0,12">
-            <Button Content="{DynamicResource LoadPdf}"
-                    Command="{Binding LoadPdfCommand}"
-                    Style="{StaticResource AccentButton}"
-                    DockPanel.Dock="Left"
-                    Margin="0,0,12,0"/>
-            <TextBlock Text="{Binding LoadedPdfName}"
-                       VerticalAlignment="Center"
-                       FontWeight="SemiBold"
-                       Visibility="{Binding HasLoadedPdf, Converter={StaticResource BoolToVis}}"/>
-        </DockPanel>
-        <Border Style="{StaticResource ModernCard}" Padding="0" Height="520" Margin="0,0,0,18">
-            <Grid>
-                <TextBlock Text="{DynamicResource NoPdfLoaded}"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center"
-                           Foreground="{StaticResource TextSecondaryBrush}"/>
-                <wv2:WebView2 Source="{Binding LoadedPdfUri}"
-                              Visibility="{Binding HasLoadedPdf, Converter={StaticResource BoolToVis}}"/>
-            </Grid>
-        </Border>
-        <TextBlock Text="{DynamicResource SectionDrawings}" FontSize="20" FontWeight="SemiBold"/>
-        <Border Style="{StaticResource ModernCard}" Margin="0,12,0,16"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="220"/></Grid.RowDefinitions>
-            <UniformGrid Columns="4" Margin="0,0,0,10"><StackPanel Margin="0,0,8,0"><TextBlock Text="Ritningsnummer"/><TextBox Text="{Binding NewDrawingNumber}"/></StackPanel><StackPanel Margin="0,0,8,0"><TextBlock Text="Titel"/><TextBox Text="{Binding NewSheetTitle}"/></StackPanel><StackPanel Margin="0,0,8,0"><TextBlock Text="Revision"/><TextBox Text="{Binding NewRevision}"/></StackPanel><StackPanel><TextBlock Text="PDF-fil"/><DockPanel><Button Content="..." Command="{Binding BrowsePdfCommand}" Style="{StaticResource SecondaryButton}" DockPanel.Dock="Right" Margin="6,0,0,0"/><TextBox Text="{Binding NewFilePath}"/></DockPanel></StackPanel></UniformGrid>
-            <Button Grid.Row="1" Content="{DynamicResource AddDrawing}" Command="{Binding AddDrawingCommand}" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left"/>
-            <DataGrid Grid.Row="2" Margin="0,15,0,0" ItemsSource="{Binding Drawings}" SelectedItem="{Binding SelectedDrawing}" IsReadOnly="True"><DataGrid.Columns><DataGridTextColumn Header="Ritningsnummer" Binding="{Binding DrawingNumber}" Width="150"/><DataGridTextColumn Header="Sidetikett/Titel" Binding="{Binding SheetTitle}" Width="*"/><DataGridTextColumn Header="Revision" Binding="{Binding Revision}" Width="100"/><DataGridTextColumn Header="Datum" Binding="{Binding Date, StringFormat={}{0:yyyy-MM-dd}}" Width="120"/><DataGridTextColumn Header="Filväg" Binding="{Binding FilePath}" Width="*"/><DataGridTemplateColumn Header="Åtgärder" Width="190"><DataGridTemplateColumn.CellTemplate><DataTemplate><StackPanel Orientation="Horizontal"><Button Content="Öppna" Command="{Binding DataContext.OpenDrawingFileCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Style="{StaticResource SecondaryButton}" Padding="8,5" Margin="0,0,5,0"/><Button Content="Radera" Command="{Binding DataContext.DeleteDrawingCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Style="{StaticResource DangerButton}" Padding="8,5"/></StackPanel></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn></DataGrid.Columns></DataGrid>
-        </Grid></Border>
-        <TextBlock Text="{DynamicResource SectionComponents}" FontSize="20" FontWeight="SemiBold"/>
-        <StackPanel Orientation="Horizontal" Margin="0,12,0,12"><Button Content="{DynamicResource ImportBluebeamXml}" Command="{Binding ImportBluebeamXmlCommand}" Style="{StaticResource AccentButton}" Margin="0,0,8,0"/><Button Content="{DynamicResource ExportExcel}" Command="{Binding ExportExcelCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,8,0"/><Button Content="{DynamicResource ExportCsv}" Command="{Binding ExportCsvCommand}" Style="{StaticResource SecondaryButton}"/></StackPanel>
-        <UniformGrid Columns="3" Margin="0,0,0,12"><Border Style="{StaticResource ModernCard}" Margin="0,0,10,0"><StackPanel><TextBlock Text="{DynamicResource TotalDuctMeters}"/><TextBlock Text="{Binding TotalDuctMeters, StringFormat={}{0:N1} m}" FontSize="24" FontWeight="SemiBold"/></StackPanel></Border><Border Style="{StaticResource ModernCard}" Margin="0,0,10,0"><StackPanel><TextBlock Text="{DynamicResource TotalDetailsCount}"/><TextBlock Text="{Binding TotalDetailsCount, StringFormat={}{0:N0} st}" FontSize="24" FontWeight="SemiBold"/></StackPanel></Border><Border Style="{StaticResource ModernCard}"><StackPanel><TextBlock Text="{DynamicResource TotalEquipmentCount}"/><TextBlock Text="{Binding TotalEquipmentCount, StringFormat={}{0:N0} st}" FontSize="24" FontWeight="SemiBold"/></StackPanel></Border></UniformGrid>
-        <Border Style="{StaticResource ModernCard}" Padding="0" Height="300"><DataGrid ItemsSource="{Binding SummaryItems}" IsReadOnly="True"><DataGrid.Columns><DataGridTextColumn Header="Kategori" Binding="{Binding Category}" Width="160"/><DataGridTextColumn Header="Typ" Binding="{Binding Type}" Width="*"/><DataGridTextColumn Header="Dimension / Beteckning" Binding="{Binding DimensionOrCode}" Width="190"/><DataGridTextColumn Header="Mängd" Binding="{Binding Quantity, StringFormat=N1}" Width="110"/><DataGridTextColumn Header="Enhet" Binding="{Binding Unit}" Width="80"/><DataGridTextColumn Header="Ritningsreferenser" Binding="{Binding SheetReferences}" Width="220"/></DataGrid.Columns></DataGrid></Border>
-    </StackPanel></ScrollViewer>
+    <Grid Margin="0,18,0,0">
+        <Grid.Style>
+            <Style TargetType="Grid">
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsListsBusy}" Value="True">
+                        <Setter Property="IsEnabled" Value="False"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Grid.Style>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="160"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <WrapPanel Margin="0,0,0,10">
+            <Button Content="Importera Bluebeam XML" Command="{Binding ImportDrawingListsCommand}" Style="{StaticResource AccentButton}" Margin="0,0,12,0"/>
+            <TextBox Width="230" Text="{Binding NewListName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Namn eller ritningsnummer för egen komponentlista" Margin="0,0,8,0"/>
+            <Button Content="Skapa egen komponentlista" Command="{Binding CreateManualListCommand}" Style="{StaticResource SecondaryButton}"/>
+        </WrapPanel>
+        <StackPanel Grid.Row="1" Margin="0,0,0,8">
+            <TextBlock Text="Projektets ritningar och komponentlistor" FontSize="18" FontWeight="SemiBold"/>
+            <TextBlock Text="{Binding ListStatus}" TextWrapping="Wrap"/>
+        </StackPanel>
+        <DataGrid Grid.Row="2" ItemsSource="{Binding Drawings}" SelectedItem="{Binding SelectedDrawing}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Ritning / Lista" Binding="{Binding DrawingNumber}" Width="170"/>
+                <DataGridTextColumn Header="Titel" Binding="{Binding SheetTitle}" Width="*"/>
+                <DataGridTextColumn Header="Revision" Binding="{Binding Revision}" Width="75"/>
+                <DataGridTextColumn Header="Importkälla" Binding="{Binding PurchaseImportSource}" Width="180"/>
+                <DataGridTextColumn Header="Datum" Binding="{Binding Date, StringFormat=yyyy-MM-dd}" Width="100"/>
+                <DataGridTextColumn Header="Kopplad PDF" Binding="{Binding FilePath}" Width="*"/>
+    <DataGridTemplateColumn Header="Åtgärder" Width="130">
+     <DataGridTemplateColumn.CellTemplate>
+      <DataTemplate>
+       <Button Content="Ta bort lista"
+               Command="{Binding DataContext.DeleteDrawingCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+               CommandParameter="{Binding}"
+               Style="{StaticResource DangerButton}"
+               Padding="8,4" Margin="4,2"/>
+      </DataTemplate>
+     </DataGridTemplateColumn.CellTemplate>
+    </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+        <WrapPanel Grid.Row="3" Margin="0,10,0,10">
+            <Button Content="Koppla PDF" Command="{Binding LinkListPdfCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,8,0"/>
+            <Button Content="Öppna PDF" Command="{Binding OpenDrawingFileCommand}" CommandParameter="{Binding SelectedDrawing}" Style="{StaticResource SecondaryButton}" Margin="0,0,16,0"/>
+   <Button Content="Ny artikel" Command="{Binding AddPurchaseArticleCommand}" Style="{StaticResource AccentButton}" Margin="0,0,16,0"/>
+   <Button Content="Exportera visad lista" Command="{Binding ExportSelectedListCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,16,0"/>
+            <TextBlock Text="Kategori" VerticalAlignment="Center" Margin="0,0,6,0"/>
+            <ComboBox Width="160" ItemsSource="{Binding Categories}" SelectedItem="{Binding CategoryFilter}" Margin="0,0,12,0"/>
+            <TextBlock Text="Typ" VerticalAlignment="Center" Margin="0,0,6,0"/>
+            <ComboBox Width="190" ItemsSource="{Binding ArticleTypes}" SelectedItem="{Binding TypeFilter}"/>
+        </WrapPanel>
+        <Grid Grid.Row="4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <DataGrid ItemsSource="{Binding ArticleView}" SelectedItem="{Binding SelectedArticle}" RowEditEnding="Articles_RowEditEnding" AutoGenerateColumns="False" IsReadOnly="False" CanUserAddRows="False" CanUserDeleteRows="False" FontFamily="Arial" FontSize="11" MinHeight="120" SelectionChanged="DataGrid_SelectionChanged">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Kategori" Binding="{Binding Category, Mode=TwoWay}" Width="135"/>
+                    <DataGridTextColumn Header="Typ / Artikel" Binding="{Binding Type, Mode=TwoWay}" Width="*"/>
+                    <DataGridTextColumn Header="Dimension / Beteckning" Binding="{Binding Dimension, Mode=TwoWay}" Width="160"/>
+                    <DataGridTextColumn Header="Mängd" Width="90">
+                        <DataGridTextColumn.Binding>
+                            <Binding Path="Quantity" Mode="TwoWay" ConverterCulture="sv-SE" StringFormat="N2" ValidatesOnExceptions="True"/>
+                        </DataGridTextColumn.Binding>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Enhet" Binding="{Binding Unit, Mode=TwoWay}" Width="65"/>
+                    <DataGridTextColumn Header="Produktkod" Binding="{Binding ProductCode, Mode=TwoWay}" Width="140"/>
+                    <DataGridTextColumn Header="Leverantör" Binding="{Binding Supplier, Mode=TwoWay}" Width="160"/>
+                </DataGrid.Columns>
+            </DataGrid>
+            <Expander Grid.Column="1" Header="PDF" ExpandDirection="Left" IsExpanded="False" Margin="10,0,0,0">
+                <Grid Width="480">
+                    <TextBlock Text="Koppla en PDF till vald ritning eller lista. Automatisk artikelutläsning från PDF ingår inte ännu." TextWrapping="Wrap" Margin="12" VerticalAlignment="Center"/>
+                    <wv2:WebView2 Source="{Binding LoadedPdfUri}" Visibility="{Binding HasLoadedPdf, Converter={StaticResource BoolToVis}}"/>
+                </Grid>
+            </Expander>
+        </Grid>
+    </Grid>
 </UserControl>

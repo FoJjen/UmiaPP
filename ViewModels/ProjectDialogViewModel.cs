@@ -38,6 +38,21 @@ public partial class ProjectDialogViewModel : ObservableObject
     private string _description = string.Empty;
 
     [ObservableProperty]
+    private string _salesPriceInput = string.Empty;
+
+    private bool TrySalesPrice(out decimal? value)
+    {
+        value = null;
+        if (string.IsNullOrWhiteSpace(SalesPriceInput)) return true;
+        var text = SalesPriceInput.Trim().Replace("\u00a0", "").Replace("\u202f", "").Replace(" ", "");
+        if (!decimal.TryParse(text,
+                System.Globalization.NumberStyles.AllowDecimalPoint,
+                System.Globalization.CultureInfo.GetCultureInfo("sv-SE"), out var amount)) return false;
+        value = amount;
+        return true;
+    }
+
+    [ObservableProperty]
     private string _title = "Nytt projekt";
 
     public bool IsConfirmed { get; private set; }
@@ -63,6 +78,7 @@ public partial class ProjectDialogViewModel : ObservableObject
             Discipline = existing.Discipline;
             CreatedDate = existing.CreatedDate;
             Description = existing.Description ?? string.Empty;
+            SalesPriceInput = existing.SalesPrice?.ToString(System.Globalization.CultureInfo.GetCultureInfo("sv-SE")) ?? string.Empty;
         }
         else
         {
@@ -80,6 +96,12 @@ public partial class ProjectDialogViewModel : ObservableObject
             return;
         }
 
+        if (!TrySalesPrice(out _))
+        {
+            MessageBox.Show("Ange ett försäljningspris på minst 0 kr. Använd komma som decimaltecken, eller lämna tomt om pris saknas.", "Validering", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
         IsConfirmed = true;
         CloseAction?.Invoke();
     }
@@ -93,6 +115,9 @@ public partial class ProjectDialogViewModel : ObservableObject
 
     public void ApplyToProject(Project project)
     {
+        if (!TrySalesPrice(out var salesPrice))
+            throw new InvalidOperationException("Ogiltigt försäljningspris.");
+        project.SalesPrice = salesPrice;
         project.Name = Name.Trim();
         project.ProjectNumber = ProjectNumber.Trim();
         project.Client = Client.Trim();

@@ -16,6 +16,7 @@ public interface IProjectRepository
     // Ritningar
     Task<List<Drawing>> GetDrawingsAsync(int projectId);
     Task<Drawing> AddDrawingAsync(Drawing drawing);
+    Task SavePurchaseListsAsync(int projectId, List<Drawing> drawings);
     Task<bool> DeleteDrawingAsync(int drawingId);
 
     // Lube kalkyl

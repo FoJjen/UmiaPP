@@ -11,5 +11,8 @@ public class Drawing
     public string FilePath { get; set; } = string.Empty;     // Länk / Filväg till PDF
     public string? Notes { get; set; }
 
+    public string PurchaseItemsJson { get; set; } = string.Empty;
+    public string PurchaseImportSource { get; set; } = string.Empty;
+
     public Project? Project { get; set; }
 }
