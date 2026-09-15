@@ -54,9 +54,6 @@ public class BluebeamXmlParserService : IBluebeamXmlParserService
                     var sidetikett = GetElementValue(markup, "Sidetikett", "PageLabel", "Page", "Drawing");
                     var kommentarer = GetElementValue(markup, "Kommentarer", "Comments");
 
-                    if (string.IsNullOrWhiteSpace(amne) && string.IsNullOrWhiteSpace(lager))
-                        continue;
-
                     var length = ParseDouble(langdStr);
                     var count = ParseDouble(antalStr);
                     if (count <= 0)
@@ -146,7 +143,7 @@ public class BluebeamXmlParserService : IBluebeamXmlParserService
             {
                 Category = "Kanal-detaljer",
                 Type = group.Key.DetailType,
-                DimensionOrCode = string.IsNullOrWhiteSpace(group.Key.Dimension) ? "-" : $"Ø{group.Key.Dimension}",
+                DimensionOrCode = StandardVentilationArticleRules.FormatDetailDimension(group.Key.Dimension),
                 Quantity = Math.Round(totalCount, 0),
                 Unit = "st",
                 SheetReferences = sheets
@@ -172,12 +169,51 @@ public class BluebeamXmlParserService : IBluebeamXmlParserService
             });
         }
 
+        // Fallback: Inkludera alla övriga artiklar som inte redan sammanfattats
+        var summarizedItems = new HashSet<BluebeamMarkupItem>(summaries.SelectMany(s => items.Where(i => i.Category == s.Category && i.Subject == s.Type && i.Dimension == s.DimensionOrCode)));
+        var fallbackItems = items.Where(i => !summarizedItems.Contains(i)).ToList();
+        foreach (var item in fallbackItems)
+        {
+            var dim = string.IsNullOrWhiteSpace(item.Dimension) ? "Ospecificerad dim" : item.Dimension;
+            var qty = item.LengthMeters + item.VerticalHeightMeters > 0 ? item.LengthMeters + item.VerticalHeightMeters : item.Count;
+            var unit = item.LengthMeters + item.VerticalHeightMeters > 0 ? "m" : "st";
+
+            // Explicit manual category handling
+            if (item.Category.Equals("Sakvara/Don", StringComparison.OrdinalIgnoreCase))
+            {
+                summaries.Add(new PurchaseSummaryItem
+                {
+                    Category = "Sakvara/Don",
+                    Type = item.Subject,
+                    DimensionOrCode = dim,
+                    Quantity = Math.Round(item.LengthMeters + item.VerticalHeightMeters > 0 ? qty : item.Count, unit == "m" ? 1 : 0),
+                    Unit = item.LengthMeters + item.VerticalHeightMeters > 0 ? "m" : "st",
+                    SheetReferences = item.SheetLabel
+                });
+            }
+            else
+            {
+                summaries.Add(new PurchaseSummaryItem
+                {
+                    Category = "Ej klassificerade",
+                    Type = item.Subject,
+                    DimensionOrCode = dim,
+                    Quantity = Math.Round(qty, unit == "m" ? 1 : 0),
+                    Unit = unit,
+                    SheetReferences = item.SheetLabel
+                });
+            }
+        }
+
         return summaries.OrderBy(s => s.Category).ThenBy(s => s.Type).ThenBy(s => s.DimensionOrCode).ToList();
     }
 
     private (string Category, string Dimension) CategorizeAndExtractDimension(string subject, string layer)
     {
         var text = $"{subject} {layer}".ToLowerInvariant();
+
+        if (StandardVentilationArticleRules.TryRecognize(subject, out var standardCategory, out var standardDimension))
+            return (standardCategory, standardDimension);
 
         // Extrahera dimension (t.ex. 160, 200, 250, 315, 400, 500, etc.)
         var dim = "";
@@ -195,89 +231,104 @@ public class BluebeamXmlParserService : IBluebeamXmlParserService
             }
         }
 
-        if (text.Contains("kanal") || layer.Equals("Kanaler", StringComparison.OrdinalIgnoreCase))
+        // Kategori igenkänning för Sadelavstickor och T-rör
+        if (Regex.IsMatch(subject, @"sadel\s*avstick", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Multiline) ||
+            Regex.IsMatch(subject, @"sadelavstick", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Multiline))
         {
-            if (text.Contains("böj") || text.Contains("boj") || text.Contains("t-rör") || text.Contains("trör") ||
-                text.Contains("reduktion") || text.Contains("avstick") || text.Contains("muff") || text.Contains("nippel") ||
-                text.Contains("rens") || text.Contains("huv") || text.Contains("galler"))
+            // Hitta och normalisera dimensioner för sadelavstick
+            var sadelDimMatch = Regex.Match(subject, @"(?:sadel\s*avstick|sadelavstick)[^\d]*(\d{2,4})[^\d]*(\d{2,4})(?:[^\d]*(\d{2,4}))?", RegexOptions.IgnoreCase);
+            if (sadelDimMatch.Success)
             {
-                return ("Detalj", dim);
-            }
-            return ("Kanal", dim);
-        }
+                var dim1 = sadelDimMatch.Groups[1].Value;
+                var dim2 = sadelDimMatch.Groups[2].Value;
+                var dim3 = sadelDimMatch.Groups[3].Value;
 
-        if (text.Contains("böj") || text.Contains("boj") || text.Contains("t-rör") || text.Contains("trör") ||
-            text.Contains("reduktion") || text.Contains("påstick") || text.Contains("planavstick"))
-        {
+                // Återge som två eller tre dimensioner åtskilda av bindestreck
+                dim = !string.IsNullOrWhiteSpace(dim3) ? $"{dim1}-{dim2}-{dim3}" : $"{dim1}-{dim2}";
+            }
+
             return ("Detalj", dim);
         }
 
-        if (text.Contains("brandspjäll") || text.Contains("brand") || layer.Contains("brand", StringComparison.OrdinalIgnoreCase))
+        if (Regex.IsMatch(subject, @"t[\s-]?r[\s-]?ö[r]?|trör", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Multiline))
         {
-            return ("Brandspjäll", dim);
+            // Hitta och normalisera dimensioner för t-rör
+            var trorDimMatch = Regex.Match(subject, @"(?:t[\s-]?r[\s-]?ö[r]?|trör)[^\d]*(\d{2,4})[^\d]*(\d{2,4})?", RegexOptions.IgnoreCase);
+            if (trorDimMatch.Success)
+            {
+                var dim1 = trorDimMatch.Groups[1].Value;
+                var dim2 = trorDimMatch.Groups[2].Value;
+
+                dim = dim1 == dim2 ? dim1 : $"{dim1}-{dim2}";
+            }
+
+            return ("Detalj", dim);
         }
 
-        if (text.Contains("ljuddämpare") || text.Contains("dämpare") || layer.Contains("ljuddämp", StringComparison.OrdinalIgnoreCase))
-        {
-            return ("Ljuddämpare", dim);
-        }
+        // Identifiera kategori baserat på välkända namn och mönster
+        // Kan utökas med fler regler vid behov
+        if (Regex.IsMatch(subject, @"\b(?:s\r?\n?bak(?:ventil)?|frånlufts(?:don)?|z?\s*rör)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+            return ("Ventilation", dim);
+        if (Regex.IsMatch(subject, @"\b(?:s\b avsnitt|frånlufts(?:don)?|regel(?:ventil)?|juster(?:bar)?|spjäll|filter)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+            return ("Övrig VVS", dim);
+        if (Regex.IsMatch(subject, @"\b(?:el(?:materiel)?|belysn(?:ing|ingsarmatur)|armatur|stänger?|sladdar?|kontakter?)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+            return ("El", dim);
+        if (Regex.IsMatch(subject, @"\bvattentät(?:a|t)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+            return ("Vattentätning", dim);
+        if (Regex.IsMatch(subject, @"\b(?:gips|durok|cementskivor?|skivmaterial(?:\s*med)?\s*hydro)?", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+            return ("Byggmaterial", dim);
 
-        if (text.Contains("don") || text.Contains("ventil") || text.Contains("spridare") || text.Contains("galler") ||
-            layer.Contains("don", StringComparison.OrdinalIgnoreCase))
-        {
-            return ("Don & Ventiler", dim);
-        }
-
-        if (text.Contains("fläkt") || text.Contains("kanalfläkt") || text.Contains("aggregat"))
-        {
-            return ("Fläktar & Aggregat", dim);
-        }
-
-        return ("Sakvaror", dim);
+        return ("Okänd", dim);
     }
 
-    private string CleanDetailType(string subject)
+    private static string GetElementValue(XElement element, params string[] names)
     {
-        var s = subject.ToLowerInvariant();
-        if (s.Contains("90") && (s.Contains("böj") || s.Contains("boj"))) return "90° Böj";
-        if (s.Contains("45") && (s.Contains("böj") || s.Contains("boj"))) return "45° Böj";
-        if (s.Contains("30") && (s.Contains("böj") || s.Contains("boj"))) return "30° Böj";
-        if (s.Contains("15") && (s.Contains("böj") || s.Contains("boj"))) return "15° Böj";
-        if (s.Contains("böj") || s.Contains("boj")) return "Böj";
-        if (s.Contains("t-rör") || s.Contains("trör")) return "T-rör";
-        if (s.Contains("reduktion") || s.Contains("dim")) return "Reduktion";
-        if (s.Contains("planavstick") || s.Contains("avstick")) return "Planavstick";
-        if (s.Contains("gavel")) return "Gavel";
-        return subject;
-    }
-
-    private string CleanSubjectCode(string subject)
-    {
-        return string.IsNullOrWhiteSpace(subject) ? "Ospecificerad" : subject.Trim();
-    }
-
-    private string GetElementValue(XElement parent, params string[] localNames)
-    {
-        foreach (var name in localNames)
+        foreach (var name in names)
         {
-            var el = parent.Elements().FirstOrDefault(e => e.Name.LocalName.Equals(name, StringComparison.OrdinalIgnoreCase));
-            if (el != null && !string.IsNullOrWhiteSpace(el.Value))
-                return el.Value.Trim();
-
-            // Även kolla attribut
-            var attr = parent.Attributes().FirstOrDefault(a => a.Name.LocalName.Equals(name, StringComparison.OrdinalIgnoreCase));
-            if (attr != null && !string.IsNullOrWhiteSpace(attr.Value))
-                return attr.Value.Trim();
+            var child = element.Elements().FirstOrDefault(candidate =>
+                string.Equals(candidate.Name.LocalName, name, StringComparison.OrdinalIgnoreCase));
+            if (child != null && !string.IsNullOrWhiteSpace(child.Value))
+                return child.Value.Trim();
         }
         return string.Empty;
     }
 
-    private double ParseDouble(string val)
+    private static double ParseDouble(string text)
     {
-        if (string.IsNullOrWhiteSpace(val)) return 0;
-        // Ta bort ev "m", "st", spaces etc
-        val = Regex.Replace(val, @"[^\d,\.\-]", "");
-        val = val.Replace(',', '.');
-        return double.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out var result) ? result : 0;
+        if (string.IsNullOrWhiteSpace(text)) return 0;
+        // XML measurements can include units, decimal commas, and grouping spaces.
+        var match = Regex.Match(text, @"[-+]?\d[\d\s\u00A0\u202F.,]*");
+        if (!match.Success) return 0;
+        var number = Regex.Replace(match.Value, @"[\s\u00A0\u202F]", string.Empty);
+        var comma = number.LastIndexOf(',');
+        var dot = number.LastIndexOf('.');
+        if (comma >= 0 && dot >= 0)
+            number = comma > dot ? number.Replace(".", string.Empty).Replace(',', '.')
+                                : number.Replace(",", string.Empty);
+        else if (comma >= 0)
+            number = number.Replace(',', '.');
+        return double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
+            && double.IsFinite(value) ? value : 0;
+    }
+
+    private static string CleanDetailType(string subject)
+    {
+        if (string.IsNullOrWhiteSpace(subject)) return "Detalj";
+        if (StandardVentilationArticleRules.TryGetDetailType(subject, out var standardBendType))
+            return standardBendType;
+        if (Regex.IsMatch(subject, @"\bsadel\s*avstick\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+            return "Sadelavstick";
+        if (Regex.IsMatch(subject, @"\bt\s*[-–]?\s*r[öo]r\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+            return "T-rör";
+        // Remove the leading diameter only. Keep bend angles and other distinguishing
+        // text so different fitting types are not merged into one purchase article.
+        var cleaned = Regex.Replace(subject.Trim(), @"^\s*[Øø]?\s*\d{2,4}(?:[xX*]\d{2,4})?\b\s*[-–]?\s*", string.Empty);
+        return string.IsNullOrWhiteSpace(cleaned) ? subject.Trim() : cleaned.Trim();
+    }
+
+    private static string CleanSubjectCode(string subject)
+    {
+        // Preserve the complete product code; hyphens and digits are meaningful.
+        return Regex.Replace(subject ?? string.Empty, @"\s+", " ").Trim();
     }
 }

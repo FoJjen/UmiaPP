@@ -1,0 +1,89 @@
+using System.Xml.Linq;
+using UmiaPP.Services;
+
+static void Check(bool condition, string message)
+{
+	if (!condition) throw new InvalidOperationException(message);
+}
+
+static XElement Markup(string subject, double count, string sheet, string? length = null) =>
+	new("Markup", new XElement("Ämne", subject), new XElement("Count", count),
+		new XElement("Sidetikett", sheet), new XElement("Length", length ?? "0"));
+
+var document = new XDocument(new XElement("Markups",
+	Markup("100-90 Böj", 2, "V-01"),
+	Markup("100-45 Böj", 3, "V-01"),
+	Markup("100-90 Böj", 4, "V-02"),
+	Markup("200 Kanal", 1, "V-01", "6,5 m"),
+	Markup("315-200  Sadel Avstick", 2, "V-01"),
+	Markup("315-200 T-rör", 3, "V-01"),
+	Markup("315-160 T-rör", 4, "V-02"),
+	Markup("ZZZ_TEST_UNKNOWN_ARTICLE", 7, "V-01"),
+	Markup("", 8, "V-02"),
+	Markup("400-200 Dim (GG = Nippel/Nippel, Exentrik)", 2, "V-01"),
+	Markup("160-100 Dim GG", 3, "V-01"),
+	Markup("250-200 Dim", 4, "V-01"),
+	Markup("250-200 Dim Exentrik", 5, "V-02"),
+	Markup("400-200-160 T-rör", 6, "V-02")));
+
+var path = Path.Combine(Path.GetTempPath(), $"UmiaPP-import-{Guid.NewGuid():N}.xml");
+try
+{
+	document.Save(path);
+	var parser = new BluebeamXmlParserService();
+	var result = await parser.ParseMarkupSummaryXmlAsync(path);
+	Check(result.Success, result.ErrorMessage ?? "Parsing failed.");
+	Check(result.Items.Count == 14, "An original XML article was dropped.");
+	Check(result.Items[0].Category == "Detalj" && result.Items[0].Dimension == "100",
+		"100-90 Böj must be a recognized detail with diameter 100, not 100-90.");
+	Check(result.Items[3].Category == "Kanal" && result.Items[3].Dimension == "200",
+		"200 Kanal must be recognized without manual classification.");
+
+	var summaries = result.SummaryItems;
+	Check(summaries.Any(row => row.Type == "Böj 90°" && row.DimensionOrCode == "Ø100" && row.Quantity == 6),
+		"Matching 90-degree bends must aggregate across sheets.");
+	Check(summaries.Any(row => row.Type == "Böj 45°" && row.DimensionOrCode == "Ø100" && row.Quantity == 3),
+		"Different bend angles must stay separate.");
+	Check(summaries.Any(row => row.Category == "Kanaler" && row.DimensionOrCode == "Ø200" &&
+		row.Unit == "m" && Math.Abs(row.Quantity - 6.5) < 0.0001),
+		"Duct quantities must preserve meter measurements with decimal commas.");
+	Check(result.Items[4].Category == "Detalj" && result.Items[4].Dimension == "315-200",
+		"Saddle branches must preserve both connection diameters.");
+	Check(result.Items[5].Dimension == "315-200" && result.Items[6].Dimension == "315-160",
+		"Reducing T-pieces must preserve different branch diameters.");
+	Check(summaries.Any(row => row.Type == "Sadelavstick" && row.DimensionOrCode == "315-200"),
+		"Saddle connection dimensions must be displayed as 315-200.");
+	Check(summaries.Any(row => row.Type == "T-rör" && row.DimensionOrCode == "400-200-160" && row.Quantity == 6),
+		"T-pieces must preserve all three connection sizes when supplied.");
+	Check(summaries.Any(row => row.Type == "Dim (GG = Nippel/Nippel, Exentrik)" &&
+		row.DimensionOrCode == "400-200" && row.Quantity == 2 && row.Unit == "st"),
+		"GG/eccentric reducer descriptions and connection dimensions must be preserved separately.");
+	Check(summaries.Any(row => row.Type == "Dim GG" && row.DimensionOrCode == "160-100" && row.Quantity == 3),
+		"Reducer rules must accept varying sizes, not just 250-200.");
+	Check(summaries.Any(row => row.Type == "Dim" && row.DimensionOrCode == "250-200" && row.Quantity == 4) &&
+		summaries.Any(row => row.Type == "Dim Exentrik" && row.DimensionOrCode == "250-200" && row.Quantity == 5),
+		"Different reducer variants with the same sizes must stay separate.");
+	Check(StandardVentilationArticleRules.FormatDetailDimension("Ø400 - Ø200") == "400-200",
+		"Connection-size formatting must normalize diameter symbols and whitespace.");
+	Check(summaries.Any(row => row.Category == "Ej klassificerade" &&
+		row.Type == "ZZZ_TEST_UNKNOWN_ARTICLE" && row.Quantity == 7),
+		"An unknown article must survive even without manual corrections.");
+	Check(summaries.Any(row => row.Category == "Ej klassificerade" && row.Quantity == 8),
+		"An item with empty subject/layer must survive for manual review.");
+
+	Check(StandardVentilationArticleRules.TryGetBendType("100-90 Böj isolerad", out var specialType) &&
+		specialType != "Böj 90°" && specialType.Contains("isolerad"),
+		"Additional bend descriptors must not be discarded.");
+	Console.WriteLine("All ventilation import checks passed.");
+}
+finally
+{
+	File.Delete(path);
+}
+
+// The source model refers to Project only through a navigation property.
+// No database or WPF dependencies are needed for this isolated parser check.
+namespace UmiaPP.Models
+{
+	public sealed class Project { }
+}

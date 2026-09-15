@@ -31,8 +31,9 @@
         <StackPanel Grid.Row="1" Margin="0,0,0,8">
             <TextBlock Text="Projektets ritningar och komponentlistor" FontSize="18" FontWeight="SemiBold"/>
             <TextBlock Text="{Binding ListStatus}" TextWrapping="Wrap"/>
+            <TextBlock Text="Välj flera listor med Ctrl-klick eller Shift-klick för att summera artiklar." TextWrapping="Wrap"/>
         </StackPanel>
-        <DataGrid Grid.Row="2" ItemsSource="{Binding Drawings}" SelectedItem="{Binding SelectedDrawing}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False">
+        <DataGrid Grid.Row="2" ItemsSource="{Binding Drawings}" SelectedItem="{Binding SelectedDrawing}" SelectionMode="Extended" SelectionUnit="FullRow" SelectionChanged="Drawings_SelectionChanged" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Ritning / Lista" Binding="{Binding DrawingNumber}" Width="170"/>
                 <DataGridTextColumn Header="Titel" Binding="{Binding SheetTitle}" Width="*"/>
@@ -54,10 +55,11 @@
             </DataGrid.Columns>
         </DataGrid>
         <WrapPanel Grid.Row="3" Margin="0,10,0,10">
-            <Button Content="Koppla PDF" Command="{Binding LinkListPdfCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,8,0"/>
-            <Button Content="Öppna PDF" Command="{Binding OpenDrawingFileCommand}" CommandParameter="{Binding SelectedDrawing}" Style="{StaticResource SecondaryButton}" Margin="0,0,16,0"/>
-   <Button Content="Ny artikel" Command="{Binding AddPurchaseArticleCommand}" Style="{StaticResource AccentButton}" Margin="0,0,16,0"/>
-   <Button Content="Exportera visad lista" Command="{Binding ExportSelectedListCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,16,0"/>
+            <Button Content="Koppla PDF" Command="{Binding LinkListPdfCommand}" IsEnabled="{Binding CanEditSelectedList}" Style="{StaticResource SecondaryButton}" Margin="0,0,8,0"/>
+            <Button Content="Öppna PDF" Command="{Binding OpenDrawingFileCommand}" CommandParameter="{Binding SelectedDrawing}" IsEnabled="{Binding CanEditSelectedList}" Style="{StaticResource SecondaryButton}" Margin="0,0,16,0"/>
+   <Button Content="Ny artikel" Command="{Binding AddPurchaseArticleCommand}" IsEnabled="{Binding CanEditSelectedList}" Style="{StaticResource AccentButton}" Margin="0,0,16,0"/>
+   <Button Content="Exportera visad lista" Command="{Binding ExportSelectedListCommand}" IsEnabled="{Binding CanEditSelectedList}" Style="{StaticResource SecondaryButton}" Margin="0,0,16,0"/>
+   <Button Content="Exportera alla listor" Command="{Binding ExportAllListsCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,16,0" ToolTip="Exporterar alla projektets listor: sammanfattning först, sedan ett blad per ritning eller lista."/>
             <TextBlock Text="Kategori" VerticalAlignment="Center" Margin="0,0,6,0"/>
             <ComboBox Width="160" ItemsSource="{Binding Categories}" SelectedItem="{Binding CategoryFilter}" Margin="0,0,12,0"/>
             <TextBlock Text="Typ" VerticalAlignment="Center" Margin="0,0,6,0"/>
@@ -68,19 +70,21 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <DataGrid ItemsSource="{Binding ArticleView}" SelectedItem="{Binding SelectedArticle}" RowEditEnding="Articles_RowEditEnding" AutoGenerateColumns="False" IsReadOnly="False" CanUserAddRows="False" CanUserDeleteRows="False" FontFamily="Arial" FontSize="11" MinHeight="120" SelectionChanged="DataGrid_SelectionChanged">
+            <DataGrid ItemsSource="{Binding ArticleView}" SelectedItem="{Binding SelectedArticle}" RowEditEnding="Articles_RowEditEnding" AutoGenerateColumns="False" IsReadOnly="{Binding IsCombinedSelection}" CanUserAddRows="False" CanUserDeleteRows="False" FontFamily="Arial" FontSize="11" MinHeight="120" SelectionChanged="DataGrid_SelectionChanged">
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="Kategori" Binding="{Binding Category, Mode=TwoWay}" Width="135"/>
-                    <DataGridTextColumn Header="Typ / Artikel" Binding="{Binding Type, Mode=TwoWay}" Width="*"/>
-                    <DataGridTextColumn Header="Dimension / Beteckning" Binding="{Binding Dimension, Mode=TwoWay}" Width="160"/>
-                    <DataGridTextColumn Header="Mängd" Width="90">
+                    <DataGridTextColumn Header="Kategori" Binding="{Binding Category, Mode=TwoWay}" Width="Auto"/>
+                    <DataGridTextColumn Header="Typ / Artikel" Binding="{Binding Type, Mode=TwoWay}" Width="Auto"/>
+                    <DataGridTextColumn Header="Dimension / Beteckning" Binding="{Binding Dimension, Mode=TwoWay}" Width="Auto"/>
+                    <DataGridTextColumn Header="Mängd" Width="Auto">
                         <DataGridTextColumn.Binding>
                             <Binding Path="Quantity" Mode="TwoWay" ConverterCulture="sv-SE" StringFormat="N2" ValidatesOnExceptions="True"/>
                         </DataGridTextColumn.Binding>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Header="Enhet" Binding="{Binding Unit, Mode=TwoWay}" Width="65"/>
-                    <DataGridTextColumn Header="Produktkod" Binding="{Binding ProductCode, Mode=TwoWay}" Width="140"/>
-                    <DataGridTextColumn Header="Leverantör" Binding="{Binding Supplier, Mode=TwoWay}" Width="160"/>
+                    <DataGridTextColumn Header="Enhet" Binding="{Binding Unit, Mode=TwoWay}" Width="Auto"/>
+                    <DataGridTextColumn Header="Inköpsantal" Binding="{Binding PurchaseQuantity, Mode=OneWay, StringFormat=N2}" IsReadOnly="True" Width="Auto"/>
+                    <DataGridTextColumn Header="Inköpsenhet" Binding="{Binding PurchaseUnit, Mode=OneWay}" IsReadOnly="True" Width="Auto"/>
+                    <DataGridTextColumn Header="Produktkod" Binding="{Binding ProductCode, Mode=TwoWay}" Width="Auto"/>
+                    <DataGridTextColumn Header="Leverantör" Binding="{Binding Supplier, Mode=TwoWay}" Width="Auto"/>
                 </DataGrid.Columns>
             </DataGrid>
             <Expander Grid.Column="1" Header="PDF" ExpandDirection="Left" IsExpanded="False" Margin="10,0,0,0">

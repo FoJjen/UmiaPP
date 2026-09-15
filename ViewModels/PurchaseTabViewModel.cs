@@ -240,7 +240,7 @@ public partial class PurchaseTabViewModel : ObservableObject
 
         try
         {
-            var res = await _bluebeamParser.ParseMarkupSummaryXmlAsync(xmlFile);
+            var res = await ParsePurchaseMarkupXmlAsync(xmlFile);
             if (!res.Success)
             {
                 _dialogService.ShowError(res.ErrorMessage ?? "Misslyckades med att läsa XML.", "Fel");

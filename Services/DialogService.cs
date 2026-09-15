@@ -1,5 +1,7 @@
 using Microsoft.Win32;
 using System.Windows;
+using UmiaPP.Models;
+using UmiaPP.Views;
 
 namespace UmiaPP.Services;
 
@@ -10,10 +12,32 @@ public interface IDialogService
     void ShowError(string message, string title);
     string? OpenFileDialog(string filter, string title);
     string? SaveFileDialog(string defaultExt, string filter, string defaultFileName);
+    bool ResolveMissingDimensions(IReadOnlyList<BluebeamMarkupItem> items);
+    bool ReviewPurchaseImport(IReadOnlyList<BluebeamMarkupItem> items);
 }
 
 public class DialogService : IDialogService
 {
+    public bool ReviewPurchaseImport(IReadOnlyList<BluebeamMarkupItem> items)
+    {
+        var dialog = new PurchaseImportReviewDialog(items)
+        {
+            Owner = Application.Current?.Windows.OfType<Window>().FirstOrDefault(window => window.IsActive)
+                ?? Application.Current?.MainWindow
+        };
+        return dialog.ShowDialog() == true;
+    }
+
+    public bool ResolveMissingDimensions(IReadOnlyList<BluebeamMarkupItem> items)
+    {
+        var dialog = new DimensionResolutionDialog(items)
+        {
+            Owner = Application.Current?.Windows.OfType<Window>().FirstOrDefault(window => window.IsActive)
+                ?? Application.Current?.MainWindow
+        };
+        return dialog.ShowDialog() == true;
+    }
+
     public bool Confirm(string message, string title)
     {
         return MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes;

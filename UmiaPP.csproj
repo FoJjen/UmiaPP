@@ -11,6 +11,7 @@
   <ItemGroup>
     <Content Include=".validation\ActualCostChecks.cs.txt" />
     <Content Include=".validation\AtaChecks.cs.txt" />
+    <Content Include=".validation\VentilationImportChecks.cs.txt" />
   </ItemGroup>
 
   <ItemGroup>
@@ -26,6 +27,7 @@
     <None Include=".github\upgrades\scenarios\dotnet-version-upgrade\tasks\01-upgrade-project\progress-details.md" />
     <None Include=".validation\RunActualCostChecks.ps1" />
     <None Include=".validation\RunAtaChecks.ps1" />
+    <None Include=".validation\RunVentilationImportChecks.ps1" />
   </ItemGroup>
 
   <ItemGroup>

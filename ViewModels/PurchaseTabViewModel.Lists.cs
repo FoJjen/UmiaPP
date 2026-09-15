@@ -83,9 +83,10 @@ public partial class PurchaseTabViewModel
         return rows;
     }
 
-    private void SelectPurchaseList(Drawing? drawing)
+    private void SelectPurchaseList(Drawing? drawing, List<PurchaseArticle>? combinedRows = null)
     {
-        Articles = new ObservableCollection<PurchaseArticle>(drawing == null ? [] : LoadListRows(drawing));
+        IsCombinedSelection = combinedRows != null;
+        Articles = new ObservableCollection<PurchaseArticle>(combinedRows ?? (drawing == null ? [] : LoadListRows(drawing)));
         SelectedArticle = null;
         CategoryFilter = AllFilter;
         TypeFilter = AllFilter;
@@ -236,7 +237,7 @@ public partial class PurchaseTabViewModel
         try
         {
             var project = Project;
-            var result = await _bluebeamParser.ParseMarkupSummaryXmlAsync(path);
+            var result = await ParsePurchaseMarkupXmlAsync(path);
             if (!result.Success) throw new InvalidOperationException(result.ErrorMessage ?? "Importen misslyckades.");
             if (!ReferenceEquals(project, Project)) return;
             if (result.Items.Count == 0) throw new InvalidOperationException("XML-filen innehåller inga läsbara markeringar.");

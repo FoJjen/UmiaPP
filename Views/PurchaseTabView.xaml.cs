@@ -10,8 +10,11 @@ public partial class PurchaseTabView : UserControl
 
     private void Articles_RowEditEnding(object? sender, DataGridRowEditEndingEventArgs e)
     {
-        if (e.EditAction != DataGridEditAction.Commit || sender is not DataGrid grid ||
-            e.Row.Item is not PurchaseArticle row || DataContext is not PurchaseTabViewModel viewModel) return;
+        if (e.EditAction != DataGridEditAction.Commit) return;
+        if (sender is not DataGrid grid) return;
+        if (e.Row.Item is not PurchaseArticle row) return;
+        if (DataContext is not PurchaseTabViewModel viewModel) return;
+        if (viewModel.IsCombinedSelection) return;
         grid.RowEditEnding -= Articles_RowEditEnding;
         bool committed;
         try { committed = grid.CommitEdit(DataGridEditingUnit.Row, true); }
@@ -23,5 +26,11 @@ public partial class PurchaseTabView : UserControl
     private void DataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
 
+    }
+
+    private void Drawings_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (sender is DataGrid grid && DataContext is PurchaseTabViewModel viewModel)
+            viewModel.SetSelectedPurchaseLists(grid.SelectedItems.Cast<Drawing>().ToList());
     }
 }
