@@ -7,6 +7,8 @@ namespace UmiaPP.ViewModels;
 public partial class PurchaseTabViewModel
 {
     private bool _isCombinedSelection;
+    private readonly Dictionary<PurchaseArticle, List<(Drawing Drawing, PurchaseArticle Article)>> _combinedRowSources = [];
+    private List<Drawing> _combinedDrawings = [];
 
     public bool IsCombinedSelection
     {
@@ -23,13 +25,16 @@ public partial class PurchaseTabViewModel
     public void SetSelectedPurchaseLists(IEnumerable<Drawing> drawings)
     {
         var selected = drawings.Where(Drawings.Contains).Distinct().ToList();
+        _combinedRowSources.Clear();
+        _combinedDrawings = [];
         if (selected.Count <= 1)
         {
             SelectPurchaseList(selected.FirstOrDefault());
             return;
         }
 
-        var sourceRows = selected.SelectMany(LoadListRows).ToList();
+        var sourceRows = selected.SelectMany(drawing =>
+            LoadListRows(drawing).Select(article => (Drawing: drawing, Article: article))).ToList();
         if (selected.Any(_unreadableLists.Contains))
         {
             // Never present a partial total as a complete purchase quantity.
@@ -41,13 +46,14 @@ public partial class PurchaseTabViewModel
         // Sum the original quantities, not the rounded purchase quantities.
         // Product codes and suppliers remain separate to avoid combining
         // different purchasable articles with the same description.
-        var combined = sourceRows
-            .GroupBy(row => new
+        var combined = new List<PurchaseArticle>();
+        foreach (var group in sourceRows.GroupBy(entry => new
             {
-                row.Category, row.Type, row.Dimension, row.Unit,
-                row.ProductCode, row.Supplier
-            })
-            .Select(group => new PurchaseArticle
+                entry.Article.Category, entry.Article.Type, entry.Article.Dimension,
+                entry.Article.Unit, entry.Article.ProductCode, entry.Article.Supplier
+            }))
+        {
+            var summary = new PurchaseArticle
             {
                 Category = group.Key.Category,
                 Type = group.Key.Type,
@@ -55,14 +61,18 @@ public partial class PurchaseTabViewModel
                 Unit = group.Key.Unit,
                 ProductCode = group.Key.ProductCode,
                 Supplier = group.Key.Supplier,
-                Quantity = group.Sum(row => row.Quantity)
-            })
-            .ToList();
+                Quantity = group.Sum(entry => entry.Article.Quantity)
+            };
+            combined.Add(summary);
+            _combinedRowSources[summary] = group.ToList();
+        }
 
-        // These rows are detached copies: they must never be saved to a drawing.
+        // The mapping identifies editable summary rows. Metadata is saved by
+        // Type across the whole project, never using summed quantities.
+        _combinedDrawings = selected;
         SelectPurchaseList(null, combined);
         ListStatus = $"{selected.Count} listor valda: {combined.Count} summerade artikelrader. " +
-            "Sammanställningen är skrivskyddad. Välj en lista för att redigera. " +
+            "Produktkod och Leverantör kan ändras och sparas på alla artiklar med samma Typ / Artikel i hela projektet när raden bekräftas, även i ritningar som inte är valda. Övriga fält är skrivskyddade. " +
             "Inköpsantal för kanaler i meter avrundas uppåt efter summering (3 m per kanal).";
     }
 }

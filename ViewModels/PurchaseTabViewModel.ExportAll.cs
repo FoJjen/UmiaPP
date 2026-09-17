@@ -52,7 +52,22 @@ public partial class PurchaseTabViewModel
                 $"Inköp_{safeName}_alla_listor.xlsx");
             if (string.IsNullOrWhiteSpace(path)) return;
 
-            await PurchaseWorkbookExporter.ExportAsync(lists, projectName, path);
+            try
+            {
+                await PurchaseWorkbookExporter.ExportAsync(lists, projectName, path);
+            }
+            catch (IOException ex) when (
+                ex.HResult == unchecked((int)0x80070020) || // ERROR_SHARING_VIOLATION
+                ex.HResult == unchecked((int)0x80070021))   // ERROR_LOCK_VIOLATION
+            {
+                _dialogService.ShowError(
+                    $"Filen används eller är låst och kunde inte sparas:\n{path}\n\n" +
+                    "Stäng filen i Excel eller det program som använder den och försök exportera igen. " +
+                    "Om filen ligger på en delad enhet kan en annan användare ha den öppen. " +
+                    "Du kan också exportera igen och välja ett annat filnamn.",
+                    "Filen används");
+                return;
+            }
             _dialogService.ShowMessage(
                 $"Exporten är klar: {lists.Count} listor och ett sammanfattningsblad.\n{path}",
                 "Exportera alla listor");

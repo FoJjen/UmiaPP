@@ -33,7 +33,7 @@
             <TextBlock Text="{Binding ListStatus}" TextWrapping="Wrap"/>
             <TextBlock Text="Välj flera listor med Ctrl-klick eller Shift-klick för att summera artiklar." TextWrapping="Wrap"/>
         </StackPanel>
-        <DataGrid Grid.Row="2" ItemsSource="{Binding Drawings}" SelectedItem="{Binding SelectedDrawing}" SelectionMode="Extended" SelectionUnit="FullRow" SelectionChanged="Drawings_SelectionChanged" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False">
+        <DataGrid Grid.Row="2" ItemsSource="{Binding Drawings}" SelectedItem="{Binding SelectedDrawing, Mode=OneWay}" SelectionMode="Extended" SelectionUnit="FullRow" SelectionChanged="Drawings_SelectionChanged" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Ritning / Lista" Binding="{Binding DrawingNumber}" Width="170"/>
                 <DataGridTextColumn Header="Titel" Binding="{Binding SheetTitle}" Width="*"/>
@@ -70,7 +70,7 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <DataGrid ItemsSource="{Binding ArticleView}" SelectedItem="{Binding SelectedArticle}" RowEditEnding="Articles_RowEditEnding" AutoGenerateColumns="False" IsReadOnly="{Binding IsCombinedSelection}" CanUserAddRows="False" CanUserDeleteRows="False" FontFamily="Arial" FontSize="11" MinHeight="120" SelectionChanged="DataGrid_SelectionChanged">
+            <DataGrid x:Name="ArticlesGrid" ItemsSource="{Binding ArticleView}" SelectedItem="{Binding SelectedArticle}" RowEditEnding="Articles_RowEditEnding" BeginningEdit="Articles_BeginningEdit" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" FontFamily="Arial" FontSize="11" MinHeight="120" SelectionChanged="DataGrid_SelectionChanged">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Kategori" Binding="{Binding Category, Mode=TwoWay}" Width="Auto"/>
                     <DataGridTextColumn Header="Typ / Artikel" Binding="{Binding Type, Mode=TwoWay}" Width="Auto"/>

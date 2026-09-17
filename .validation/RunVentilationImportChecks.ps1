@@ -7,6 +7,7 @@ try {
 	$parser = [System.Security.SecurityElement]::Escape((Join-Path $root 'Services\BluebeamXmlParserService.cs'))
 	$rules = [System.Security.SecurityElement]::Escape((Join-Path $root 'Services\StandardVentilationArticleRules.cs'))
 	$models = [System.Security.SecurityElement]::Escape((Join-Path $root 'Models\BluebeamModels.cs'))
+	$memory = [System.Security.SecurityElement]::Escape((Join-Path $root 'Services\PurchaseCategoryMemory.cs'))
 	$project = Join-Path $temp 'ImportChecks.csproj'
 	@"
 <Project Sdk="Microsoft.NET.Sdk">
@@ -22,6 +23,7 @@ try {
 	<Compile Include="$parser" Link="BluebeamXmlParserService.cs" />
 	<Compile Include="$rules" Link="StandardVentilationArticleRules.cs" />
 	<Compile Include="$models" Link="BluebeamModels.cs" />
+	  <Compile Include="$memory" Link="PurchaseCategoryMemory.cs" />
   </ItemGroup>
 </Project>
 "@ | Set-Content -Path $project -Encoding UTF8

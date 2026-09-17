@@ -71,8 +71,11 @@ public class BluebeamXmlParserService : IBluebeamXmlParserService
 
                     var verticalHeight = ParseDouble(vertikalStr);
 
-                    // Extrahera dimension och kategori
-                    var (category, dimension) = CategorizeAndExtractDimension(amne, lager);
+                    // Recognized article subjects take priority over generic
+                    // classification (including layer-based fallback rules).
+                    // Manual corrections still happen later, during review.
+                    if (!StandardVentilationArticleRules.TryRecognize(amne, out var category, out var dimension))
+                        (category, dimension) = CategorizeAndExtractDimension(amne, lager);
 
                     result.Items.Add(new BluebeamMarkupItem
                     {
@@ -104,12 +107,15 @@ public class BluebeamXmlParserService : IBluebeamXmlParserService
     public List<PurchaseSummaryItem> GroupAndSummarize(List<BluebeamMarkupItem> items)
     {
         var summaries = new List<PurchaseSummaryItem>();
+        // Track source objects, not their renamed/formatted summary values.
+        var summarizedItems = new HashSet<BluebeamMarkupItem>();
 
         // 1. Raka kanaler per dimension (löpande meter) - inkluderar horisontell längd och vertikalhöjd
         var ductItems = items.Where(i => i.Category == "Kanal").ToList();
         var ductGroups = ductItems.GroupBy(i => i.Dimension);
         foreach (var group in ductGroups)
         {
+            summarizedItems.UnionWith(group);
             var dim = string.IsNullOrWhiteSpace(group.Key) ? "Ospecificerad dim" : $"Ø{group.Key}";
             var totalLength = group.Sum(x => x.LengthMeters + x.VerticalHeightMeters);
             if (totalLength <= 0)
@@ -136,6 +142,7 @@ public class BluebeamXmlParserService : IBluebeamXmlParserService
         var detailGroups = detailItems.GroupBy(i => new { DetailType = CleanDetailType(i.Subject), i.Dimension });
         foreach (var group in detailGroups)
         {
+            summarizedItems.UnionWith(group);
             var totalCount = group.Sum(x => x.Count);
             var sheets = string.Join(", ", group.Select(x => x.SheetLabel).Where(s => !string.IsNullOrWhiteSpace(s)).Distinct());
 
@@ -151,10 +158,16 @@ public class BluebeamXmlParserService : IBluebeamXmlParserService
         }
 
         // 3. Sakvaror/Don/Brandspjäll/Ljuddämpare per beteckning (st)
-        var componentItems = items.Where(i => i.Category != "Kanal" && i.Category != "Detalj").ToList();
+        var fallbackCategories = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "Okänd", "Ej klassificerade", "Sakvara/Don", "Byggmaterial"
+        };
+        var componentItems = items.Where(i => i.Category != "Kanal" && i.Category != "Detalj" &&
+            !string.IsNullOrWhiteSpace(i.Category) && !fallbackCategories.Contains(i.Category.Trim())).ToList();
         var compGroups = componentItems.GroupBy(i => new { i.Category, Code = CleanSubjectCode(i.Subject) });
         foreach (var group in compGroups)
         {
+            summarizedItems.UnionWith(group);
             var totalCount = group.Sum(x => x.Count);
             var sheets = string.Join(", ", group.Select(x => x.SheetLabel).Where(s => !string.IsNullOrWhiteSpace(s)).Distinct());
 
@@ -169,40 +182,35 @@ public class BluebeamXmlParserService : IBluebeamXmlParserService
             });
         }
 
-        // Fallback: Inkludera alla övriga artiklar som inte redan sammanfattats
-        var summarizedItems = new HashSet<BluebeamMarkupItem>(summaries.SelectMany(s => items.Where(i => i.Category == s.Category && i.Subject == s.Type && i.Dimension == s.DimensionOrCode)));
-        var fallbackItems = items.Where(i => !summarizedItems.Contains(i)).ToList();
-        foreach (var item in fallbackItems)
+        // Only genuinely unhandled source items enter fallback. Aggregate them
+        // once by article identity and unit; never re-add recognized fittings.
+        var fallbackGroups = items.Where(item => !summarizedItems.Contains(item))
+            .Select(item => new
+            {
+                Category = string.Equals(item.Category?.Trim(), "Sakvara/Don", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(item.Category?.Trim(), "Byggmaterial", StringComparison.OrdinalIgnoreCase)
+                    ? "Sakvara/Don" : "Ej klassificerade",
+                Type = !string.IsNullOrWhiteSpace(item.Subject) ? item.Subject
+                    : !string.IsNullOrWhiteSpace(item.Layer) ? item.Layer : "Utan ämne",
+                Dimension = string.IsNullOrWhiteSpace(item.Dimension) ? "Ospecificerad dim" : item.Dimension,
+                Unit = item.LengthMeters + item.VerticalHeightMeters > 0 ? "m" : "st",
+                Quantity = item.LengthMeters + item.VerticalHeightMeters > 0
+                    ? item.LengthMeters + item.VerticalHeightMeters : item.Count,
+                item.SheetLabel
+            })
+            .GroupBy(item => new { item.Category, item.Type, item.Dimension, item.Unit });
+        foreach (var group in fallbackGroups)
         {
-            var dim = string.IsNullOrWhiteSpace(item.Dimension) ? "Ospecificerad dim" : item.Dimension;
-            var qty = item.LengthMeters + item.VerticalHeightMeters > 0 ? item.LengthMeters + item.VerticalHeightMeters : item.Count;
-            var unit = item.LengthMeters + item.VerticalHeightMeters > 0 ? "m" : "st";
-
-            // Explicit manual category handling
-            if (item.Category.Equals("Sakvara/Don", StringComparison.OrdinalIgnoreCase))
+            summaries.Add(new PurchaseSummaryItem
             {
-                summaries.Add(new PurchaseSummaryItem
-                {
-                    Category = "Sakvara/Don",
-                    Type = item.Subject,
-                    DimensionOrCode = dim,
-                    Quantity = Math.Round(item.LengthMeters + item.VerticalHeightMeters > 0 ? qty : item.Count, unit == "m" ? 1 : 0),
-                    Unit = item.LengthMeters + item.VerticalHeightMeters > 0 ? "m" : "st",
-                    SheetReferences = item.SheetLabel
-                });
-            }
-            else
-            {
-                summaries.Add(new PurchaseSummaryItem
-                {
-                    Category = "Ej klassificerade",
-                    Type = item.Subject,
-                    DimensionOrCode = dim,
-                    Quantity = Math.Round(qty, unit == "m" ? 1 : 0),
-                    Unit = unit,
-                    SheetReferences = item.SheetLabel
-                });
-            }
+                Category = group.Key.Category,
+                Type = group.Key.Type,
+                DimensionOrCode = group.Key.Dimension,
+                Quantity = Math.Round(group.Sum(item => item.Quantity), group.Key.Unit == "m" ? 1 : 0),
+                Unit = group.Key.Unit,
+                SheetReferences = string.Join(", ", group.Select(item => item.SheetLabel)
+                    .Where(sheet => !string.IsNullOrWhiteSpace(sheet)).Distinct())
+            });
         }
 
         return summaries.OrderBy(s => s.Category).ThenBy(s => s.Type).ThenBy(s => s.DimensionOrCode).ToList();
@@ -275,7 +283,7 @@ public class BluebeamXmlParserService : IBluebeamXmlParserService
             return ("El", dim);
         if (Regex.IsMatch(subject, @"\bvattentät(?:a|t)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
             return ("Vattentätning", dim);
-        if (Regex.IsMatch(subject, @"\b(?:gips|durok|cementskivor?|skivmaterial(?:\s*med)?\s*hydro)?", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+        if (Regex.IsMatch(subject, @"\b(?:gips|durok|cementskivor?|skivmaterial(?:\s+med)?\s+hydro)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
             return ("Byggmaterial", dim);
 
         return ("Okänd", dim);

@@ -6,15 +6,16 @@ static void Check(bool condition, string message)
 	if (!condition) throw new InvalidOperationException(message);
 }
 
-static XElement Markup(string subject, double count, string sheet, string? length = null) =>
+static XElement Markup(string subject, double count, string sheet, string? length = null, string? layer = null) =>
 	new("Markup", new XElement("Ämne", subject), new XElement("Count", count),
-		new XElement("Sidetikett", sheet), new XElement("Length", length ?? "0"));
+		new XElement("Sidetikett", sheet), new XElement("Length", length ?? "0"),
+		new XElement("Lager", layer ?? string.Empty));
 
 var document = new XDocument(new XElement("Markups",
 	Markup("100-90 Böj", 2, "V-01"),
 	Markup("100-45 Böj", 3, "V-01"),
 	Markup("100-90 Böj", 4, "V-02"),
-	Markup("200 Kanal", 1, "V-01", "6,5 m"),
+	Markup("200 Kanal", 1, "V-01", "6,5 m", "Byggmaterial"),
 	Markup("315-200  Sadel Avstick", 2, "V-01"),
 	Markup("315-200 T-rör", 3, "V-01"),
 	Markup("315-160 T-rör", 4, "V-02"),
@@ -24,7 +25,11 @@ var document = new XDocument(new XElement("Markups",
 	Markup("160-100 Dim GG", 3, "V-01"),
 	Markup("250-200 Dim", 4, "V-01"),
 	Markup("250-200 Dim Exentrik", 5, "V-02"),
-	Markup("400-200-160 T-rör", 6, "V-02")));
+	Markup("400-200-160 T-rör", 6, "V-02"),
+	Markup("160 Planavstick", 2, "V-01", "1,9 m", "Byggmaterial"),
+	Markup("630 Nippel", 3, "V-02", "2,0 m", "Byggmaterial"),
+	Markup("160 Kanal", 1, "V-01", "1,9 m", "Byggmaterial"),
+	Markup("400 Kanal", 1, "V-02", "2,4 m", "Byggmaterial")));
 
 var path = Path.Combine(Path.GetTempPath(), $"UmiaPP-import-{Guid.NewGuid():N}.xml");
 try
@@ -33,13 +38,18 @@ try
 	var parser = new BluebeamXmlParserService();
 	var result = await parser.ParseMarkupSummaryXmlAsync(path);
 	Check(result.Success, result.ErrorMessage ?? "Parsing failed.");
-	Check(result.Items.Count == 14, "An original XML article was dropped.");
+	Check(result.Items.Count == 18, "An original XML article was dropped.");
+	Check(result.Items[7].Category == "Okänd" && result.Items[8].Category == "Okänd",
+		"Unknown or empty subjects must not match the building-material regex.");
 	Check(result.Items[0].Category == "Detalj" && result.Items[0].Dimension == "100",
 		"100-90 Böj must be a recognized detail with diameter 100, not 100-90.");
 	Check(result.Items[3].Category == "Kanal" && result.Items[3].Dimension == "200",
 		"200 Kanal must be recognized without manual classification.");
 
 	var summaries = result.SummaryItems;
+	Check(!summaries.Any(row => row.Category == "Ej klassificerade" &&
+		row.Type != "ZZZ_TEST_UNKNOWN_ARTICLE" && row.Type != "Utan ämne"),
+		"Recognized articles must not be added again as unclassified fallback rows.");
 	Check(summaries.Any(row => row.Type == "Böj 90°" && row.DimensionOrCode == "Ø100" && row.Quantity == 6),
 		"Matching 90-degree bends must aggregate across sheets.");
 	Check(summaries.Any(row => row.Type == "Böj 45°" && row.DimensionOrCode == "Ø100" && row.Quantity == 3),
@@ -47,6 +57,17 @@ try
 	Check(summaries.Any(row => row.Category == "Kanaler" && row.DimensionOrCode == "Ø200" &&
 		row.Unit == "m" && Math.Abs(row.Quantity - 6.5) < 0.0001),
 		"Duct quantities must preserve meter measurements with decimal commas.");
+	Check(summaries.Any(row => row.Category == "Kanaler" && row.DimensionOrCode == "Ø160" &&
+		row.Unit == "m" && Math.Abs(row.Quantity - 1.9) < 0.0001) &&
+		summaries.Any(row => row.Category == "Kanaler" && row.DimensionOrCode == "Ø400" &&
+		row.Unit == "m" && Math.Abs(row.Quantity - 2.4) < 0.0001),
+		"Recognized duct subjects must take precedence over a generic Byggmaterial layer.");
+	Check(summaries.Any(row => row.Category == "Kanal-detaljer" && row.Type == "Planavstick" &&
+		row.DimensionOrCode == "Ø160" && row.Unit == "st" && row.Quantity == 2),
+		"Planavstick must be a detail measured by Count, not its length field.");
+	Check(summaries.Any(row => row.Category == "Kanal-detaljer" && row.Type == "Nippel" &&
+		row.DimensionOrCode == "Ø630" && row.Unit == "st" && row.Quantity == 3),
+		"Nippel must be a detail measured by Count, not its length field.");
 	Check(result.Items[4].Category == "Detalj" && result.Items[4].Dimension == "315-200",
 		"Saddle branches must preserve both connection diameters.");
 	Check(result.Items[5].Dimension == "315-200" && result.Items[6].Dimension == "315-160",
@@ -74,7 +95,57 @@ try
 	Check(StandardVentilationArticleRules.TryGetBendType("100-90 Böj isolerad", out var specialType) &&
 		specialType != "Böj 90°" && specialType.Contains("isolerad"),
 		"Additional bend descriptors must not be discarded.");
-	Console.WriteLine("All ventilation import checks passed.");
+	var repeatedBends = Enumerable.Range(0, 5).Select(_ => new UmiaPP.Models.BluebeamMarkupItem
+	{
+		Subject = "200-90 Böj", Category = "Detalj", Dimension = "200", Count = 1, SheetLabel = "V-01"
+	}).ToList();
+	var bendSummary = parser.GroupAndSummarize(repeatedBends);
+	Check(bendSummary.Count == 1 && bendSummary[0].Category == "Kanal-detaljer" &&
+		bendSummary[0].Type == "Böj 90°" && bendSummary[0].DimensionOrCode == "Ø200" &&
+		bendSummary[0].Quantity == 5 && bendSummary[0].Unit == "st",
+		"Five 200-90 bends must produce exactly one row of five pieces, with no fallback duplicates.");
+	var manualItems = new List<UmiaPP.Models.BluebeamMarkupItem>
+	{
+		new() { Subject = "Manuell artikel", Category = "Sakvara/Don", Dimension = "ABC", Count = 2 },
+		new() { Subject = "Manuell artikel", Category = "Sakvara/Don", Dimension = "ABC", Count = 3 }
+	};
+	var manualSummary = parser.GroupAndSummarize(manualItems);
+	Check(manualSummary.Count == 1 && manualSummary[0].Category == "Sakvara/Don" && manualSummary[0].Quantity == 5,
+		"Manual equipment must be summarized once, not in both component and fallback groups.");
+	Check(StandardVentilationArticleRules.TryRecognize("100 Vertikal Kanal", out var verticalCategory, out var verticalDimension) &&
+		verticalCategory == "Kanal" && verticalDimension == "100",
+		"Vertical ducts in the supplied preview must be recognized as ducts.");
+	var memoryDirectory = Path.Combine(Path.GetTempPath(), $"UmiaPP-category-memory-{Guid.NewGuid():N}");
+	var memoryPath = Path.Combine(memoryDirectory, "categories.json");
+	try
+	{
+		var memory = new PurchaseCategoryMemory(memoryPath);
+		Check(memory.Load().Count == 0, "Missing category memory must start empty.");
+		memory.SaveChoices(new Dictionary<string, string> { ["Artikel A"] = "Detalj" });
+		var nextImport = new PurchaseCategoryMemory(memoryPath);
+		Check(nextImport.Load()["Artikel A"] == "Detalj", "Category choices must survive a new service instance.");
+		nextImport.SaveChoices(new Dictionary<string, string> { ["Artikel B"] = "Kanal" });
+		Check(memory.Load()["Artikel A"] == "Detalj" && memory.Load()["Artikel B"] == "Kanal",
+			"Imports in other projects must preserve existing category choices.");
+		nextImport.SaveChoices(new Dictionary<string, string> { ["Artikel A"] = "Sakvara/Don" });
+		Check(memory.Load()["Artikel A"] == "Sakvara/Don", "A later explicit choice must replace the earlier one.");
+		Check(!memory.Load().ContainsKey("artikel A"), "Remembered subjects must use the same exact matching as review.");
+		var before = File.ReadAllText(memoryPath);
+		memory.SaveChoices(new Dictionary<string, string>());
+		Check(File.ReadAllText(memoryPath) == before, "No explicit choices must not rewrite category memory.");
+
+		File.WriteAllText(memoryPath, "{invalid json");
+		var rejectedCorruptFile = false;
+		try { memory.SaveChoices(new Dictionary<string, string> { ["Artikel C"] = "Detalj" }); }
+		catch (System.Text.Json.JsonException) { rejectedCorruptFile = true; }
+		Check(rejectedCorruptFile && File.ReadAllText(memoryPath) == "{invalid json",
+			"Unreadable saved choices must not be silently overwritten.");
+	}
+	finally
+	{
+		if (Directory.Exists(memoryDirectory)) Directory.Delete(memoryDirectory, recursive: true);
+	}
+	Console.WriteLine("All ventilation import and category memory checks passed.");
 }
 finally
 {

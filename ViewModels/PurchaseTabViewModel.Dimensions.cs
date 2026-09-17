@@ -8,10 +8,22 @@ namespace UmiaPP.ViewModels;
 
 public partial class PurchaseTabViewModel
 {
+    private readonly Dictionary<BluebeamMarkupItem, string> _purchaseImportOriginalSubjects = [];
+
     private async Task<BluebeamImportResult> ParsePurchaseMarkupXmlAsync(string filePath)
     {
+        _pendingPurchaseCategories.Clear();
         var result = await _bluebeamParser.ParseMarkupSummaryXmlAsync(filePath);
         if (!result.Success) return result;
+
+        // Capture original subjects once per XML import, before any corrections.
+        _purchaseImportOriginalSubjects.Clear();
+        foreach (var item in result.Items)
+            _purchaseImportOriginalSubjects[item] = item.Subject ?? string.Empty;
+
+        // Explicit user choices override automatic classification, but never
+        // replace dimensions, quantities, source descriptions, or drawing IDs.
+        ApplyRememberedPurchaseCategories(result.Items);
 
         // Resolve the source items before grouping so unrelated unknown
         // dimensions are not permanently merged into one purchase article.
@@ -19,12 +31,29 @@ public partial class PurchaseTabViewModel
 
         if (unresolved.Count > 0)
         {
+            // Include all matching original subjects across drawings, even if
+            // only some of those rows originally required review.
+            var subjects = unresolved.Select(item => _purchaseImportOriginalSubjects[item])
+                .Where(subject => !string.IsNullOrWhiteSpace(subject)).ToHashSet(StringComparer.Ordinal);
+            var unresolvedItems = unresolved.ToHashSet();
+            var reviewItems = result.Items.Where(item => unresolvedItems.Contains(item) ||
+                subjects.Contains(_purchaseImportOriginalSubjects[item])).ToList();
             // Cancellation deliberately continues importing the original items.
-            _dialogService.ReviewPurchaseImport(unresolved);
-            result.SummaryItems = _bluebeamParser.GroupAndSummarize(result.Items);
+            ReviewImportedPurchaseItems(reviewItems);
         }
 
+        result.SummaryItems = _bluebeamParser.GroupAndSummarize(result.Items);
         return result;
+    }
+
+    private bool ReviewImportedPurchaseItems(IReadOnlyList<BluebeamMarkupItem> items)
+    {
+        if (!_dialogService.ReviewPurchaseImport(items, _purchaseImportOriginalSubjects, _pendingPurchaseCategories))
+            return false;
+        foreach (var original in _purchaseImportOriginalSubjects)
+            if (_pendingPurchaseCategories.TryGetValue(original.Value, out var category))
+                original.Key.Category = category;
+        return true;
     }
 
     private bool RequiresPurchaseImportReview(BluebeamMarkupItem item)

@@ -8,6 +8,7 @@ using System.Windows.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using UmiaPP.Models;
+using UmiaPP.Services;
 
 namespace UmiaPP.ViewModels;
 
@@ -156,12 +157,7 @@ public partial class PurchaseTabViewModel
         }
         try
         {
-            await SaveListAsync(drawing, _listRows[drawing]);
-            if (SelectedDrawing == drawing)
-            {
-                RefreshArticleFilters();
-                ListStatus = "Artikellistan sparad.";
-            }
+            await SaveProjectArticleMetadataAsync(row, drawing);
         }
         catch (Exception ex) { _dialogService.ShowError($"Kunde inte spara artikeln: {ex.Message}", "Inköp"); }
     }
@@ -237,46 +233,69 @@ public partial class PurchaseTabViewModel
         try
         {
             var project = Project;
-            var result = await ParsePurchaseMarkupXmlAsync(path);
-            if (!result.Success) throw new InvalidOperationException(result.ErrorMessage ?? "Importen misslyckades.");
+            // Keep the same source objects and corrections throughout review.
+            var parsedResult = await ParsePurchaseMarkupXmlAsync(path);
+            if (!parsedResult.Success) throw new InvalidOperationException(parsedResult.ErrorMessage ?? "Importen misslyckades.");
             if (!ReferenceEquals(project, Project)) return;
-            if (result.Items.Count == 0) throw new InvalidOperationException("XML-filen innehåller inga läsbara markeringar.");
+            if (parsedResult.Items.Count == 0) throw new InvalidOperationException("XML-filen innehåller inga läsbara markeringar.");
             var plans = new List<(Drawing? Old, Drawing Saved, List<PurchaseArticle> Rows)>();
             var preview = new StringBuilder("Importförhandsgranskning\n\n");
-            foreach (var group in result.Items.GroupBy(m => SheetKey(m.SheetLabel)))
+            while (true)
             {
-                var matches = Drawings.Where(d => string.Equals(SheetKey(d.DrawingNumber), group.Key, StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(SheetKey(d.SheetTitle), group.Key, StringComparison.OrdinalIgnoreCase)).Distinct().ToArray();
-                if (matches.Length > 1) throw new InvalidOperationException($"Flera listor matchar {group.Key}. Byt namn innan import.");
-                var existing = matches.SingleOrDefault();
-                if (existing != null && _unreadableLists.Contains(existing)) throw new InvalidOperationException($"Kan inte ersätta den oläsbara listan {group.Key}.");
-                var imported = ConvertArticles(group.ToList());
-                var oldRows = existing == null ? new List<PurchaseArticle>() : LoadListRows(existing);
-                var importedOld = oldRows.Where(r => !r.IsManual).GroupBy(Key).ToDictionary(g => g.Key, g => g.ToArray());
-                foreach (var row in imported)
+                plans.Clear();
+                preview.Clear();
+                preview.AppendLine("Importförhandsgranskning").AppendLine();
+                foreach (var group in parsedResult.Items.GroupBy(m => SheetKey(m.SheetLabel)))
                 {
-                    if (!importedOld.TryGetValue(Key(row), out var candidates)) continue;
-                    if (candidates.Length != 1) throw new InvalidOperationException($"Dubbla gamla artiklar i {group.Key}; kan inte säkert bevara Produktkod/Leverantör.");
-                    row.RowId = candidates[0].RowId;
-                    row.ProductCode = candidates[0].ProductCode;
-                    row.Supplier = candidates[0].Supplier;
+                    var matches = Drawings.Where(d => string.Equals(SheetKey(d.DrawingNumber), group.Key, StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(SheetKey(d.SheetTitle), group.Key, StringComparison.OrdinalIgnoreCase)).Distinct().ToArray();
+                    if (matches.Length > 1) throw new InvalidOperationException($"Flera listor matchar {group.Key}. Byt namn innan import.");
+                    var existing = matches.SingleOrDefault();
+                    if (existing != null && _unreadableLists.Contains(existing)) throw new InvalidOperationException($"Kan inte ersätta den oläsbara listan {group.Key}.");
+                    var imported = ConvertArticles(group.ToList());
+                    var oldRows = existing == null ? new List<PurchaseArticle>() : LoadListRows(existing);
+                    var importedOld = oldRows.Where(r => !r.IsManual).GroupBy(Key).ToDictionary(g => g.Key, g => g.ToArray());
+                    foreach (var row in imported)
+                    {
+                        if (!importedOld.TryGetValue(Key(row), out var candidates)) continue;
+                        // Old faulty imports may contain duplicate fallback rows.
+                        // Replacing them is safe only when their metadata agrees.
+                        if (candidates.Select(candidate => (candidate.ProductCode, candidate.Supplier)).Distinct().Count() != 1)
+                            throw new InvalidOperationException($"Dubbla gamla artiklar i {group.Key} har olika Produktkod/Leverantör. Kontrollera dessa innan import.");
+                        row.RowId = candidates[0].RowId;
+                        row.ProductCode = candidates[0].ProductCode;
+                        row.Supplier = candidates[0].Supplier;
+                    }
+                    var retainedManual = oldRows.Where(r => r.IsManual).ToList();
+                    imported.AddRange(retainedManual);
+                    var drawing = existing ?? new Drawing { ProjectId = project.Id, DrawingNumber = group.Key, SheetTitle = group.Key };
+                    var saved = Snapshot(drawing, imported);
+                    saved.PurchaseImportSource = Path.GetFileName(path);
+                    saved.Date = DateTime.Today;
+                    plans.Add((existing, saved, imported));
+                    preview.AppendLine($"{group.Key}: {(existing == null ? "ny lista" : "ersätt importerade rader")} – {oldRows.Count} → {imported.Count} rader ({retainedManual.Count} manuella behålls).");
+                    foreach (var row in imported.Where(r => !r.IsManual))
+                        preview.AppendLine($"  {row.Category} | {row.Type} | {row.Dimension} | {row.Quantity.ToString("N2", CultureInfo.GetCultureInfo("sv-SE"))} {row.Unit}");
                 }
-                var retainedManual = oldRows.Where(r => r.IsManual).ToList();
-                imported.AddRange(retainedManual);
-                var drawing = existing ?? new Drawing { ProjectId = project.Id, DrawingNumber = group.Key, SheetTitle = group.Key };
-                var saved = Snapshot(drawing, imported);
-                saved.PurchaseImportSource = Path.GetFileName(path);
-                saved.Date = DateTime.Today;
-                plans.Add((existing, saved, imported));
-                preview.AppendLine($"{group.Key}: {(existing == null ? "ny lista" : "ersätt importerade rader")} – {oldRows.Count} → {imported.Count} rader ({retainedManual.Count} manuella behålls).");
-                foreach (var row in imported.Where(r => !r.IsManual))
-                    preview.AppendLine($"  {row.Category} | {row.Type} | {row.Dimension} | {row.Quantity.ToString("N2", CultureInfo.GetCultureInfo("sv-SE"))} {row.Unit}");
+                preview.AppendLine("\nImporterade mängder ersätts, inte adderas. Produktkod och Leverantör bevaras för exakt matchande kategori/typ/dimension/enhet. Manuella rader behålls. Importerade rader som saknas i nya filen tas bort. Övriga listor och PDF-länkar lämnas oförändrade.");
+                var decision = _dialogService.PreviewPurchaseImport(preview.ToString());
+                if (decision == PurchaseImportPreviewDecision.Cancel) return;
+                if (decision == PurchaseImportPreviewDecision.Back)
+                {
+                    ReviewImportedPurchaseItems(parsedResult.Items);
+                    parsedResult.SummaryItems = _bluebeamParser.GroupAndSummarize(parsedResult.Items);
+                    if (!ReferenceEquals(project, Project)) return;
+                    continue;
+                }
+                if (decision == PurchaseImportPreviewDecision.Import) break;
+                throw new InvalidOperationException("Ogiltigt val i importförhandsgranskningen.");
             }
-            preview.AppendLine("\nImporterade mängder ersätts, inte adderas. Produktkod och Leverantör bevaras för exakt matchande kategori/typ/dimension/enhet. Manuella rader behålls. Importerade rader som saknas i nya filen tas bort. Övriga listor och PDF-länkar lämnas oförändrade.");
-            if (!ConfirmImportPreview(preview.ToString())) return;
+            // No writes occur until the single preview decision confirms Import.
+            if (!ReferenceEquals(project, Project)) return;
             await _listSaveLock.WaitAsync();
             try { await _dataService.Projects.SavePurchaseListsAsync(project.Id, plans.Select(p => p.Saved).ToList()); }
             finally { _listSaveLock.Release(); }
+            RememberConfirmedPurchaseCategories();
             if (!ReferenceEquals(project, Project)) return;
             foreach (var plan in plans)
             {
@@ -401,5 +420,119 @@ public partial class PurchaseTabViewModel
         });
         window.Content = panel;
         return window.ShowDialog() == true;
+    }
+
+    public async Task SaveCombinedPurchaseArticleAsync(PurchaseArticle row)
+    {
+        if (!IsCombinedSelection || !_combinedRowSources.ContainsKey(row)) return;
+
+        await SaveProjectArticleMetadataAsync(row);
+    }
+
+    private async Task SaveProjectArticleMetadataAsync(PurchaseArticle row, Drawing? editedDrawing = null)
+    {
+        if (string.IsNullOrWhiteSpace(row.Type)) return;
+
+        // Type defines product metadata across the whole project, irrespective
+        // of selection, dimension, category, unit, or the previous metadata.
+        var capturedSelection = _combinedDrawings.ToArray();
+        var capturedView = ArticleView;
+        var editedType = row.Type;
+        var editedProductCode = row.ProductCode;
+        var editedSupplier = row.Supplier;
+        var projectDrawings = Drawings.ToArray();
+        if (editedDrawing != null && !projectDrawings.Contains(editedDrawing)) return;
+        var projectLists = projectDrawings.Select(drawing => new
+        {
+            Drawing = drawing,
+            Rows = LoadListRows(drawing)
+        }).ToArray();
+
+        // An unreadable list may contain this Type; do not silently skip it.
+        if (projectDrawings.Any(_unreadableLists.Contains))
+        {
+            _dialogService.ShowError(
+                "Alla ritningslistor måste kunna läsas innan Produktkod och Leverantör kan uppdateras i hela projektet. Ingen lista har sparats. Åtgärda de oläsbara listorna och försök igen.",
+                "Inköp");
+            return;
+        }
+
+        var batches = projectLists.Select(list => new
+        {
+            list.Drawing,
+            list.Rows,
+            Edits = list.Rows
+                .Where(article => string.Equals(article.Type, editedType, StringComparison.Ordinal))
+                .Select(article => (
+                    Article: article,
+                    ProductCode: article.ProductCode,
+                    Supplier: article.Supplier)).ToArray()
+        }).Where(batch => batch.Edits.Length > 0 &&
+            (batch.Drawing == editedDrawing || batch.Edits.Any(edit =>
+                edit.ProductCode != editedProductCode || edit.Supplier != editedSupplier))).ToArray();
+
+        // Always save the individual edited row's drawing, including quantity
+        // edits that do not require any metadata changes in other drawings.
+        if (batches.Length == 0) return;
+
+        var savedCount = 0;
+        string? failureMessage = null;
+        IsListsBusy = true;
+        try
+        {
+            // RowEditEnding invokes this method synchronously. Let the grid finish
+            // its edit callback before a synchronously completed save can rebind it.
+            await Task.Yield();
+            foreach (var batch in batches)
+            {
+                try
+                {
+                    foreach (var edit in batch.Edits)
+                    {
+                        edit.Article.ProductCode = editedProductCode;
+                        edit.Article.Supplier = editedSupplier;
+                    }
+
+                    // Save the complete original list, including unrelated and
+                    // manual rows. Quantities and all other fields stay unchanged.
+                    await SaveListAsync(batch.Drawing, batch.Rows);
+                    savedCount++;
+                }
+                catch (Exception ex)
+                {
+                    // Only this drawing was changed but not successfully saved.
+                    // Keep successful saves; later drawings have not been touched.
+                    foreach (var edit in batch.Edits)
+                    {
+                        edit.Article.ProductCode = edit.ProductCode;
+                        edit.Article.Supplier = edit.Supplier;
+                    }
+                    failureMessage = $"Kunde inte spara {batch.Drawing.DrawingNumber}:\n{ex.Message}\n\n" +
+                        "Produktkod och Leverantör har återställts i minnet för denna ritning. " +
+                        (savedCount == 0
+                            ? "Ingen ritning har bekräftats som sparad. "
+                            : $"Uppdateringen är delvis sparad: {savedCount} av {batches.Length} ritningar har sparats och behåller ändringarna. ") +
+                        "Övriga ritningar har inte ändrats. Kontrollera felet och försök igen för de osparade raderna.";
+                    break;
+                }
+            }
+
+            // Do not steal a newer selection or interrupt another edit.
+            if (ReferenceEquals(ArticleView, capturedView) &&
+                ArticleView is not IEditableCollectionView { IsAddingNew: true } &&
+                ArticleView is not IEditableCollectionView { IsEditingItem: true })
+            {
+                if (IsCombinedSelection && capturedSelection.SequenceEqual(_combinedDrawings))
+                    SetSelectedPurchaseLists(capturedSelection);
+                else if (!IsCombinedSelection)
+                    RefreshArticleFilters();
+                ListStatus = failureMessage == null
+                    ? $"Artikeln sparad. Produktkod och Leverantör för {editedType} är synkroniserade i hela projektet ({savedCount} ritningar sparade)."
+                    : $"Uppdateringen avbröts. {savedCount} av {batches.Length} ritningar har sparats.";
+            }
+            if (failureMessage != null)
+                _dialogService.ShowError(failureMessage, "Spara misslyckades");
+        }
+        finally { IsListsBusy = false; }
     }
 }

@@ -13,19 +13,39 @@ public interface IDialogService
     string? OpenFileDialog(string filter, string title);
     string? SaveFileDialog(string defaultExt, string filter, string defaultFileName);
     bool ResolveMissingDimensions(IReadOnlyList<BluebeamMarkupItem> items);
-    bool ReviewPurchaseImport(IReadOnlyList<BluebeamMarkupItem> items);
+    bool ReviewPurchaseImport(IReadOnlyList<BluebeamMarkupItem> items,
+        IReadOnlyDictionary<BluebeamMarkupItem, string>? originalSubjects = null,
+        IDictionary<string, string>? categorySelections = null);
+    PurchaseImportPreviewDecision PreviewPurchaseImport(string previewText);
 }
 
 public class DialogService : IDialogService
 {
-    public bool ReviewPurchaseImport(IReadOnlyList<BluebeamMarkupItem> items)
+    public PurchaseImportPreviewDecision PreviewPurchaseImport(string previewText)
     {
-        var dialog = new PurchaseImportReviewDialog(items)
+        var dialog = new PurchaseImportPreviewDialog(previewText)
         {
             Owner = Application.Current?.Windows.OfType<Window>().FirstOrDefault(window => window.IsActive)
                 ?? Application.Current?.MainWindow
         };
-        return dialog.ShowDialog() == true;
+        dialog.ShowDialog();
+        return dialog.Decision;
+    }
+
+    public bool ReviewPurchaseImport(IReadOnlyList<BluebeamMarkupItem> items,
+        IReadOnlyDictionary<BluebeamMarkupItem, string>? originalSubjects = null,
+        IDictionary<string, string>? categorySelections = null)
+    {
+        var dialog = new PurchaseImportReviewDialog(items, originalSubjects)
+        {
+            Owner = Application.Current?.Windows.OfType<Window>().FirstOrDefault(window => window.IsActive)
+                ?? Application.Current?.MainWindow
+        };
+        if (dialog.ShowDialog() != true) return false;
+        if (categorySelections != null)
+            foreach (var selection in dialog.CategorySelections)
+                categorySelections[selection.Key] = selection.Value;
+        return true;
     }
 
     public bool ResolveMissingDimensions(IReadOnlyList<BluebeamMarkupItem> items)
