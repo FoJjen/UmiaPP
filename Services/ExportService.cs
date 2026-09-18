@@ -11,10 +11,14 @@ public interface IExportService
     Task ExportPurchaseListToCsvAsync(List<PurchaseSummaryItem> items, string filePath);
     Task ExportAtaInvoiceToExcelAsync(AtaSummary? summary, AtaSummaryRow row, string filePath);
     Task ExportAtaInvoiceToPdfAsync(AtaSummary? summary, AtaSummaryRow row, string filePath);
+    Task ExportInspectionListToExcelAsync(Project project, Drawing drawing, DrawingInspection header, List<DrawingInspectionItem> items, string filePath);
 }
 
 public class ExportService : IExportService
 {
+    public Task ExportInspectionListToExcelAsync(Project project, Drawing drawing, DrawingInspection header, List<DrawingInspectionItem> items, string filePath) =>
+        InspectionWorkbookExporter.ExportAsync(project, drawing, header, items, filePath);
+
     public async Task ExportPurchaseListToExcelAsync(List<PurchaseSummaryItem> items, string projectName, string filePath)
     {
         await Task.Run(() =>

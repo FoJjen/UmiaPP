@@ -13,6 +13,7 @@
             <TabItem Header="{DynamicResource TabLube}"><views:LubeCalculationTabView DataContext="{Binding LubeTab}"/></TabItem>
             <TabItem Header="{DynamicResource TabPurchase}"><views:PurchaseTabView DataContext="{Binding PurchaseTab}"/></TabItem>
             <TabItem Header="{DynamicResource TabAta}"><views:AtaTabView DataContext="{Binding AtaTab}"/></TabItem>
+            <TabItem Header="{DynamicResource TabInspection}"><views:InspectionTabView DataContext="{Binding InspectionTab}"/></TabItem>
         </TabControl>
     </Grid>
 </UserControl>

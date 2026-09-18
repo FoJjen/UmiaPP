@@ -9,10 +9,11 @@
         <TextBlock Text="{Binding Title}" FontSize="22" FontWeight="SemiBold" Margin="0,0,0,22"/>
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
             <StackPanel Margin="0,0,12,14"><TextBlock Text="Projektnamn *" Margin="0,0,0,5"/><TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
             <StackPanel Grid.Column="1" Margin="12,0,0,14"><TextBlock Text="Projektnummer *" Margin="0,0,0,5"/><TextBox Text="{Binding ProjectNumber, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
-            <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Margin="0,0,0,14"><TextBlock Text="Beställare" Margin="0,0,0,5"/><TextBox Text="{Binding Client, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+            <StackPanel Grid.Row="1" Margin="0,0,12,14"><TextBlock Text="Beställare" Margin="0,0,0,5"/><TextBox Text="{Binding Client, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+            <StackPanel Grid.Row="1" Grid.Column="1" Margin="12,0,0,14"><TextBlock Text="Beställare/Kund ref.nr" Margin="0,0,0,5"/><TextBox Text="{Binding CustomerReference, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
             <StackPanel Grid.Row="2" Margin="0,0,12,14"><TextBlock Text="Entreprenadform" Margin="0,0,0,5"/><ComboBox Height="36" ItemsSource="{Binding ContractTypes}" SelectedItem="{Binding ContractType}"/></StackPanel>
             <StackPanel Grid.Row="2" Grid.Column="1" Margin="12,0,0,14"><TextBlock Text="Status" Margin="0,0,0,5"/><ComboBox Height="36" ItemsSource="{Binding ProjectStatuses}" SelectedItem="{Binding Status}"/></StackPanel>
             <StackPanel Grid.Row="3" Margin="0,0,12,14"><TextBlock Text="Teknikområde" Margin="0,0,0,5"/><ComboBox Height="36" ItemsSource="{Binding Disciplines}" SelectedItem="{Binding Discipline}"/></StackPanel>
@@ -22,7 +23,11 @@
                 <TextBox Text="{Binding SalesPriceInput, UpdateSourceTrigger=PropertyChanged}"/>
                 <TextBlock Text="Använd komma som decimaltecken. Lämna tomt om pris saknas." Margin="0,4,0,0" Foreground="{StaticResource TextSecondaryBrush}"/>
             </StackPanel>
-            <StackPanel Grid.Row="5" Grid.ColumnSpan="2"><TextBlock Text="Beskrivning" Margin="0,0,0,5"/><TextBox Height="72" AcceptsReturn="True" TextWrapping="Wrap" VerticalContentAlignment="Top" Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+            <StackPanel Grid.Row="5" Grid.ColumnSpan="2" Margin="0,0,0,14"><TextBlock Text="Leveransadress" Margin="0,0,0,5"/><TextBox Height="56" AcceptsReturn="True" TextWrapping="Wrap" VerticalContentAlignment="Top" Text="{Binding DeliveryAddress, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+            <StackPanel Grid.Row="6" Margin="0,0,12,14"><TextBlock Text="Kontaktperson" Margin="0,0,0,5"/><TextBox Text="{Binding ContactPerson, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+            <StackPanel Grid.Row="6" Grid.Column="1" Margin="12,0,0,14"><TextBlock Text="Märke" Margin="0,0,0,5"/><TextBox IsReadOnly="True" Text="{Binding ProjectNumber, Mode=OneWay}" ToolTip="Märket skapas som projektnummer och teknikkod (VE 50, VS 70, EL 30, SÖE 90)."/></StackPanel>
+            <StackPanel Grid.Row="7" Grid.ColumnSpan="2" Margin="0,0,0,14"><TextBlock Text="Fakturauppgift" Margin="0,0,0,5"/><TextBox Height="56" AcceptsReturn="True" TextWrapping="Wrap" VerticalContentAlignment="Top" Text="{Binding InvoiceDetails, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+            <StackPanel Grid.Row="8" Grid.ColumnSpan="2"><TextBlock Text="Beskrivning" Margin="0,0,0,5"/><TextBox Height="72" AcceptsReturn="True" TextWrapping="Wrap" VerticalContentAlignment="Top" Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
         </Grid>
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,24,0,0">
             <Button Content="Avbryt" Command="{Binding CancelCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,10,0"/>

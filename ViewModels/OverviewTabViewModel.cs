@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Globalization;
 using System.Text.Json;
+using System.Windows;
 using UmiaPP.Data;
 using UmiaPP.Models;
 using UmiaPP.Services;
@@ -108,6 +109,14 @@ public partial class OverviewTabViewModel : ObservableObject
     [ObservableProperty]
     private double _componentCount;
 
+    public string DeliveryMark => DeliveryMarking.Format(Project.ProjectNumber, Project.Discipline);
+    public string DeliveryDiscipline => DeliveryMarking.ShortName(Project.Discipline);
+    public string DeliveryInfoText =>
+        $"Märke: {DeliveryMark} ({DeliveryDiscipline})\n" +
+        $"Leveransadress: {Project.DeliveryAddress}\n" +
+        $"Kontaktperson: {Project.ContactPerson}\n" +
+        $"Fakturauppgift: {Project.InvoiceDetails}";
+
     public OverviewTabViewModel(Project project, IDataService dataService, IDialogService dialogService)
     {
         _dataService = dataService;
@@ -122,6 +131,16 @@ public partial class OverviewTabViewModel : ObservableObject
         Project = project;
         LoadSalesInputs();
         RefreshMetrics();
+        OnPropertyChanged(nameof(DeliveryMark));
+        OnPropertyChanged(nameof(DeliveryDiscipline));
+        OnPropertyChanged(nameof(DeliveryInfoText));
+    }
+
+    [RelayCommand]
+    private void CopyDeliveryInfo()
+    {
+        Clipboard.SetText(DeliveryInfoText);
+        _dialogService.ShowMessage("Leveransinformationen har kopierats.", "Översikt");
     }
 
     private void LoadSalesInputs()
@@ -157,7 +176,7 @@ public partial class OverviewTabViewModel : ObservableObject
                 CurrentTg = null;
             }
         }
-        DrawingCount = Project.Drawings?.Count ?? 0;
+        DrawingCount = Project.Drawings?.Count(drawing => !drawing.IsInspectionList) ?? 0;
         TotalHours = Project.LubeKalkylPoster?.Sum(x => x.TotaltMontageTimmar) ?? 0;
         TotalMaterialCost = Project.LubeKalkylPoster?.Sum(x => x.TotaltMaterial) ?? 0;
         ComponentCount = (Project.BluebeamMarkups?.Count ?? 0) + (Project.LubeSakvarorMangder?.Count ?? 0);

@@ -40,4 +40,12 @@ public interface IProjectRepository
     // Bluebeam markups
     Task<List<BluebeamMarkupItem>> GetBluebeamMarkupsAsync(int projectId);
     Task SaveBluebeamMarkupsAsync(int projectId, List<BluebeamMarkupItem> markups);
+
+    Task<List<InspectionPointTemplate>> GetInspectionTemplatesAsync();
+    Task<InspectionPointTemplate> SaveInspectionTemplateAsync(InspectionPointTemplate template);
+    Task DeleteInspectionTemplateAsync(int templateId);
+    Task<List<DrawingInspectionItem>> GetDrawingInspectionItemsAsync(int drawingId);
+    Task SaveDrawingInspectionItemsAsync(int drawingId, List<DrawingInspectionItem> items);
+    Task<DrawingInspection> GetDrawingInspectionAsync(int drawingId);
+    Task SaveDrawingInspectionAsync(DrawingInspection inspection);
 }

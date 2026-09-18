@@ -25,6 +25,7 @@ public partial class ActiveProjectViewModel : ObservableObject
     public LubeCalculationTabViewModel LubeTab { get; }
     public PurchaseTabViewModel PurchaseTab { get; }
     public AtaTabViewModel AtaTab { get; }
+    public InspectionTabViewModel InspectionTab { get; }
 
     public ActiveProjectViewModel(
         Project project,
@@ -47,6 +48,7 @@ public partial class ActiveProjectViewModel : ObservableObject
         LubeTab = new LubeCalculationTabViewModel(project, dataService, lubeImport, dialogService);
         PurchaseTab = new PurchaseTabViewModel(project, dataService, bluebeamParser, exportService, dialogService);
         AtaTab = new AtaTabViewModel(project, dataService, dialogService, exportService);
+        InspectionTab = new InspectionTabViewModel(project, dataService, exportService, dialogService);
         AtaTab.SummaryChanged += (_, _) => LubeTab.RefreshAtaSummary();
         OverviewTab.SetOutcomeProvider(() => LubeTab.Outcome);
         OverviewTab.SetCardMetricsProvider(() => (
@@ -88,6 +90,8 @@ public partial class ActiveProjectViewModel : ObservableObject
             OverviewTab.RefreshMetrics();
         if (value == 1)
             LubeTab.RefreshAtaSummary();
+        if (value == 4)
+            InspectionTab.RefreshLists();
     }
 
     public void Refresh(Project project)
@@ -97,6 +101,7 @@ public partial class ActiveProjectViewModel : ObservableObject
         LubeTab.UpdateProject(project);
         PurchaseTab.UpdateProject(project);
         AtaTab.UpdateProject(project);
+        InspectionTab.UpdateProject(project);
         OverviewTab.RefreshCardMetrics();
         OverviewTab.RefreshCurrentOutcome();
     }

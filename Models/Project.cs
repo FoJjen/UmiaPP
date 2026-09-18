@@ -8,6 +8,7 @@ public class Project
     public string Name { get; set; } = string.Empty;
     public string ProjectNumber { get; set; } = string.Empty;
     public string Client { get; set; } = string.Empty; // Beställare
+    public string CustomerReference { get; set; } = string.Empty; // Beställare/Kund ref.nr
     public ContractType ContractType { get; set; } = ContractType.Totalentreprenad;
     public ProjectStatus Status { get; set; } = ProjectStatus.Kalkyl;
     public DisciplineType Discipline { get; set; } = DisciplineType.Ventilation;
@@ -18,6 +19,9 @@ public class Project
     public decimal? AtaOwnCost { get; set; }
     public decimal? SalesPrice { get; set; }
     public decimal? BudgetedCost { get; set; }
+    public string DeliveryAddress { get; set; } = string.Empty;
+    public string ContactPerson { get; set; } = string.Empty;
+    public string InvoiceDetails { get; set; } = string.Empty;
 
     // Navigation properties
     public List<Drawing> Drawings { get; set; } = [];

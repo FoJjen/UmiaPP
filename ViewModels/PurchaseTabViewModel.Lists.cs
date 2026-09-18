@@ -128,7 +128,8 @@ public partial class PurchaseTabViewModel
         SheetTitle = drawing.SheetTitle, Revision = drawing.Revision, Date = drawing.Date,
         FilePath = drawing.FilePath, Notes = drawing.Notes,
         PurchaseImportSource = drawing.PurchaseImportSource,
-        PurchaseItemsJson = JsonSerializer.Serialize(rows)
+        PurchaseItemsJson = JsonSerializer.Serialize(rows),
+        IsInspectionList = drawing.IsInspectionList
     };
 
     private async Task SaveListAsync(Drawing drawing, List<PurchaseArticle> rows)

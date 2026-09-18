@@ -13,6 +13,7 @@ public class Drawing
 
     public string PurchaseItemsJson { get; set; } = string.Empty;
     public string PurchaseImportSource { get; set; } = string.Empty;
+    public bool IsInspectionList { get; set; }
 
     public Project? Project { get; set; }
 }

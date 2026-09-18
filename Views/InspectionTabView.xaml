@@ -1,0 +1,102 @@
+<UserControl x:Class="UmiaPP.Views.InspectionTabView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Margin="0,18,0,0">
+        <Grid.Style>
+            <Style TargetType="Grid">
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsBusy}" Value="True">
+                        <Setter Property="IsEnabled" Value="False"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Grid.Style>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <DockPanel Margin="0,0,0,10">
+            <StackPanel DockPanel.Dock="Right">
+                <Button Content="Exportera listan" Command="{Binding ExportListCommand}" Style="{StaticResource AccentButton}"/>
+                <Button Content="Ny kontrollpunkt" Margin="0,8,0,0" Click="AddPoint_Click" Style="{StaticResource SecondaryButton}"/>
+            </StackPanel>
+            <StackPanel>
+                <TextBlock Text="Egenkontroller" FontSize="20" FontWeight="SemiBold"/>
+                <TextBlock Text="{Binding Status}" TextWrapping="Wrap" Foreground="{StaticResource TextSecondaryBrush}"/>
+            </StackPanel>
+        </DockPanel>
+        <StackPanel Grid.Row="1" Margin="0,0,0,12">
+            <TextBlock Text="Listnamn" Margin="0,0,0,4"/>
+            <WrapPanel>
+                <TextBox Width="240" Margin="0,0,8,0" Text="{Binding NewListName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Namn på ny egenkontrollista"/>
+                <Button Content="Skapa lista" Command="{Binding CreateListCommand}" Style="{StaticResource AccentButton}"/>
+            </WrapPanel>
+        </StackPanel>
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="280"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+            <DataGrid ItemsSource="{Binding Drawings}" SelectedItem="{Binding SelectedDrawing}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Lista" Binding="{Binding DrawingNumber}" Width="*"/>
+                </DataGrid.Columns>
+            </DataGrid>
+                <Button Grid.Row="1" Margin="0,8,0,0" Content="Ta bort lista" Command="{Binding DeleteListCommand}" CommandParameter="{Binding SelectedDrawing}" Style="{StaticResource DangerButton}"/>
+            </Grid>
+            <Grid Grid.Column="1" Margin="12,0,0,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <StackPanel Margin="0,0,8,8"><TextBlock Text="Arbetsmoment"/><TextBox Text="{Binding WorkTask, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+                    <StackPanel Grid.Column="1" Margin="0,0,8,8"><TextBlock Text="Byggdel"/><TextBox Text="{Binding BuildingPart, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+                    <StackPanel Grid.Column="2" Margin="0,0,8,8"><TextBlock Text="Framställd av"/><TextBox IsReadOnly="True" Text="{Binding PreparedBy, Mode=OneWay}" ToolTip="Hämtas från inloggad Windows-användare."/></StackPanel>
+                    <StackPanel Grid.Column="3" Margin="0,0,0,8"><TextBlock Text="Godkänd av"/><TextBox Text="{Binding ApprovedBy, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+                    <StackPanel Grid.Row="1" Margin="0,0,8,8"><TextBlock Text="Dok nr"/><TextBox Text="{Binding DocumentNumber, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+                    <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,8,8"><TextBlock Text="Rev"/><TextBox Text="{Binding Revision, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+                    <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,8,8"><TextBlock Text="Datum"/><DatePicker SelectedDate="{Binding InspectionDate}" Height="36"/></StackPanel>
+                    <StackPanel Grid.Row="1" Grid.Column="3" Margin="0,0,0,8"><TextBlock Text="Beställare/Kund ref.nr"/><TextBox IsReadOnly="True" Text="{Binding CustomerReference, Mode=OneWay}" ToolTip="Hämtas från projektuppgifterna."/></StackPanel>
+                    <StackPanel Grid.Row="2" Grid.ColumnSpan="4" Margin="0,0,0,8"><TextBlock Text="Beskrivning"/><TextBox Text="{Binding WorkDescription, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
+                </Grid>
+            <DataGrid Grid.Row="1" ItemsSource="{Binding TemplateChoices}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" RowEditEnding="Templates_RowEditEnding">
+                <DataGrid.Columns>
+                    <DataGridTemplateColumn Header="Ingår" Width="70">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <CheckBox IsChecked="{Binding IsIncluded, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="Checklista för egenkontroll" Binding="{Binding Template.Title, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="220"/>
+                    <DataGridTextColumn Header="Krav/information" Binding="{Binding Template.Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
+                    <DataGridTemplateColumn Header="Åtgärder" Width="90">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Content="Ta bort"
+                                        Command="{Binding DataContext.DeletePointCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}"
+                                        Style="{StaticResource DangerButton}"
+                                        Padding="8,4" Margin="4,2"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+            </Grid>
+        </Grid>
+    </Grid>
+</UserControl>

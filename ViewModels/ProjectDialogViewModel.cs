@@ -23,6 +23,9 @@ public partial class ProjectDialogViewModel : ObservableObject
     private string _client = string.Empty;
 
     [ObservableProperty]
+    private string _customerReference = string.Empty;
+
+    [ObservableProperty]
     private ContractType _contractType = ContractType.Totalentreprenad;
 
     [ObservableProperty]
@@ -39,6 +42,15 @@ public partial class ProjectDialogViewModel : ObservableObject
 
     [ObservableProperty]
     private string _salesPriceInput = string.Empty;
+
+    [ObservableProperty]
+    private string _deliveryAddress = string.Empty;
+
+    [ObservableProperty]
+    private string _contactPerson = string.Empty;
+
+    [ObservableProperty]
+    private string _invoiceDetails = string.Empty;
 
     private bool TrySalesPrice(out decimal? value)
     {
@@ -73,12 +85,16 @@ public partial class ProjectDialogViewModel : ObservableObject
             Name = existing.Name;
             ProjectNumber = existing.ProjectNumber;
             Client = existing.Client;
+            CustomerReference = existing.CustomerReference ?? string.Empty;
             ContractType = existing.ContractType;
             Status = existing.Status;
             Discipline = existing.Discipline;
             CreatedDate = existing.CreatedDate;
             Description = existing.Description ?? string.Empty;
             SalesPriceInput = existing.SalesPrice?.ToString(System.Globalization.CultureInfo.GetCultureInfo("sv-SE")) ?? string.Empty;
+            DeliveryAddress = existing.DeliveryAddress ?? string.Empty;
+            ContactPerson = existing.ContactPerson ?? string.Empty;
+            InvoiceDetails = existing.InvoiceDetails ?? string.Empty;
         }
         else
         {
@@ -121,10 +137,14 @@ public partial class ProjectDialogViewModel : ObservableObject
         project.Name = Name.Trim();
         project.ProjectNumber = ProjectNumber.Trim();
         project.Client = Client.Trim();
+        project.CustomerReference = CustomerReference.Trim();
         project.ContractType = ContractType;
         project.Status = Status;
         project.Discipline = Discipline;
         project.CreatedDate = CreatedDate;
         project.Description = Description;
+        project.DeliveryAddress = DeliveryAddress.Trim();
+        project.ContactPerson = ContactPerson.Trim();
+        project.InvoiceDetails = InvoiceDetails.Trim();
     }
 }

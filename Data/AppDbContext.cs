@@ -16,6 +16,9 @@ public class AppDbContext : DbContext
     public DbSet<LubeSakvaraMontage> LubeSakvarorMontagePoster => Set<LubeSakvaraMontage>();
     public DbSet<LubeEjMangdbaserad> LubeEjMangdbaseradePoster => Set<LubeEjMangdbaserad>();
     public DbSet<BluebeamMarkupItem> BluebeamMarkups => Set<BluebeamMarkupItem>();
+    public DbSet<InspectionPointTemplate> InspectionPointTemplates => Set<InspectionPointTemplate>();
+    public DbSet<DrawingInspectionItem> DrawingInspectionItems => Set<DrawingInspectionItem>();
+    public DbSet<DrawingInspection> DrawingInspections => Set<DrawingInspection>();
 
     private readonly string _dbPath;
 
@@ -134,6 +137,34 @@ public class AppDbContext : DbContext
             entity.HasOne(x => x.Project)
                   .WithMany(p => p.BluebeamMarkups)
                   .HasForeignKey(x => x.ProjectId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<InspectionPointTemplate>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Title).IsRequired().HasMaxLength(200);
+            entity.Property(x => x.Description).HasMaxLength(2000);
+        });
+
+        modelBuilder.Entity<DrawingInspectionItem>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Title).IsRequired().HasMaxLength(200);
+            entity.Property(x => x.Description).HasMaxLength(2000);
+            entity.HasOne<Drawing>()
+                  .WithMany()
+                  .HasForeignKey(x => x.DrawingId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<DrawingInspection>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.HasIndex(x => x.DrawingId).IsUnique();
+            entity.HasOne<Drawing>()
+                  .WithMany()
+                  .HasForeignKey(x => x.DrawingId)
                   .OnDelete(DeleteBehavior.Cascade);
         });
     }

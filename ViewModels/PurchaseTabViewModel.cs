@@ -99,7 +99,7 @@ public partial class PurchaseTabViewModel : ObservableObject
 
     private void LoadFromProject()
     {
-        Drawings = new ObservableCollection<Drawing>(Project.Drawings ?? []);
+        Drawings = new ObservableCollection<Drawing>((Project.Drawings ?? []).Where(drawing => !drawing.IsInspectionList));
         Markups = new ObservableCollection<BluebeamMarkupItem>(Project.BluebeamMarkups ?? []);
 
         UpdateSummary();

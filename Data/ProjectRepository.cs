@@ -94,11 +94,15 @@ public class ProjectRepository : IProjectRepository
         existing.Name = project.Name;
         existing.ProjectNumber = project.ProjectNumber;
         existing.Client = project.Client;
+        existing.CustomerReference = project.CustomerReference;
         existing.ContractType = project.ContractType;
         existing.Status = project.Status;
         existing.Discipline = project.Discipline;
         existing.Description = project.Description;
         existing.SalesPrice = project.SalesPrice;
+        existing.DeliveryAddress = project.DeliveryAddress;
+        existing.ContactPerson = project.ContactPerson;
+        existing.InvoiceDetails = project.InvoiceDetails;
 
         await context.SaveChangesAsync();
         return existing;
@@ -169,9 +173,102 @@ public class ProjectRepository : IProjectRepository
         var d = await context.Drawings.FindAsync(drawingId);
         if (d == null) return false;
 
+        var inspectionItems = context.DrawingInspectionItems.Where(item => item.DrawingId == drawingId);
+        context.DrawingInspectionItems.RemoveRange(inspectionItems);
+        var inspections = context.DrawingInspections.Where(item => item.DrawingId == drawingId);
+        context.DrawingInspections.RemoveRange(inspections);
         context.Drawings.Remove(d);
         await context.SaveChangesAsync();
         return true;
+    }
+
+    public async Task<List<InspectionPointTemplate>> GetInspectionTemplatesAsync()
+    {
+        await using var context = _contextFactory();
+        return await context.InspectionPointTemplates
+            .OrderBy(template => template.SortOrder)
+            .ThenBy(template => template.Title)
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+    public async Task<InspectionPointTemplate> SaveInspectionTemplateAsync(InspectionPointTemplate template)
+    {
+        if (string.IsNullOrWhiteSpace(template.Title))
+            throw new InvalidOperationException("Ange en kontrollpunkt.");
+
+        await using var context = _contextFactory();
+        InspectionPointTemplate saved;
+        if (template.Id == 0)
+        {
+            saved = new InspectionPointTemplate { CreatedDate = DateTime.Now };
+            context.InspectionPointTemplates.Add(saved);
+        }
+        else
+        {
+            saved = await context.InspectionPointTemplates.SingleOrDefaultAsync(item => item.Id == template.Id)
+                ?? throw new InvalidOperationException("Kontrollpunkten finns inte längre.");
+        }
+
+        saved.Title = template.Title.Trim();
+        saved.Description = template.Description?.Trim() ?? string.Empty;
+        saved.SortOrder = template.SortOrder;
+        if (saved.Id != 0)
+        {
+            var items = await context.DrawingInspectionItems.Where(item => item.TemplateId == saved.Id).ToListAsync();
+            foreach (var item in items)
+            {
+                item.Title = saved.Title;
+                item.Description = saved.Description;
+            }
+        }
+        await context.SaveChangesAsync();
+        template.Id = saved.Id;
+        template.CreatedDate = saved.CreatedDate;
+        return saved;
+    }
+
+    public async Task DeleteInspectionTemplateAsync(int templateId)
+    {
+        await using var context = _contextFactory();
+        var template = await context.InspectionPointTemplates.FindAsync(templateId);
+        if (template == null) return;
+        context.InspectionPointTemplates.Remove(template);
+        await context.SaveChangesAsync();
+    }
+
+    public async Task<List<DrawingInspectionItem>> GetDrawingInspectionItemsAsync(int drawingId)
+    {
+        await using var context = _contextFactory();
+        return await context.DrawingInspectionItems
+            .Where(item => item.DrawingId == drawingId)
+            .OrderBy(item => item.SortOrder)
+            .ThenBy(item => item.Title)
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+    public async Task SaveDrawingInspectionItemsAsync(int drawingId, List<DrawingInspectionItem> items)
+    {
+        await using var context = _contextFactory();
+        if (!await context.Drawings.AnyAsync(drawing => drawing.Id == drawingId))
+            throw new InvalidOperationException("Ritningen finns inte längre.");
+
+        var existing = await context.DrawingInspectionItems.Where(item => item.DrawingId == drawingId).ToListAsync();
+        context.DrawingInspectionItems.RemoveRange(existing);
+        foreach (var item in items)
+        {
+            context.DrawingInspectionItems.Add(new DrawingInspectionItem
+            {
+                DrawingId = drawingId,
+                TemplateId = item.TemplateId,
+                Title = item.Title?.Trim() ?? string.Empty,
+                Description = item.Description?.Trim() ?? string.Empty,
+                SortOrder = item.SortOrder
+            });
+        }
+
+        await context.SaveChangesAsync();
     }
 
     public async Task SavePurchaseListsAsync(int projectId, List<Drawing> drawings)
@@ -338,5 +435,40 @@ public class ProjectRepository : IProjectRepository
         await context.BluebeamMarkups.AddRangeAsync(markups);
 
         await context.SaveChangesAsync();
+    }
+
+    public async Task<DrawingInspection> GetDrawingInspectionAsync(int drawingId)
+    {
+        await using var context = _contextFactory();
+        return await context.DrawingInspections.AsNoTracking()
+                .FirstOrDefaultAsync(item => item.DrawingId == drawingId)
+            ?? new DrawingInspection { DrawingId = drawingId, Date = DateTime.Today, Revision = "1", SectionNumber = 1 };
+    }
+
+    public async Task SaveDrawingInspectionAsync(DrawingInspection inspection)
+    {
+        await using var context = _contextFactory();
+        if (!await context.Drawings.AnyAsync(drawing => drawing.Id == inspection.DrawingId))
+            throw new InvalidOperationException("Ritningen finns inte längre.");
+
+        var saved = await context.DrawingInspections.FirstOrDefaultAsync(item => item.DrawingId == inspection.DrawingId);
+        if (saved == null)
+        {
+            saved = new DrawingInspection { DrawingId = inspection.DrawingId };
+            context.DrawingInspections.Add(saved);
+        }
+
+        saved.Date = inspection.Date == default ? DateTime.Today : inspection.Date;
+        saved.CustomerReference = inspection.CustomerReference?.Trim() ?? string.Empty;
+        saved.PreparedBy = inspection.PreparedBy?.Trim() ?? string.Empty;
+        saved.ApprovedBy = inspection.ApprovedBy?.Trim() ?? string.Empty;
+        saved.DocumentNumber = inspection.DocumentNumber?.Trim() ?? string.Empty;
+        saved.Revision = string.IsNullOrWhiteSpace(inspection.Revision) ? "1" : inspection.Revision.Trim();
+        saved.WorkTask = inspection.WorkTask?.Trim() ?? string.Empty;
+        saved.BuildingPart = inspection.BuildingPart?.Trim() ?? string.Empty;
+        saved.Description = inspection.Description?.Trim() ?? string.Empty;
+        saved.SectionNumber = inspection.SectionNumber < 1 ? 1 : inspection.SectionNumber;
+        await context.SaveChangesAsync();
+        inspection.Id = saved.Id;
     }
 }
