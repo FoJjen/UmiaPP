@@ -1,4 +1,7 @@
+using System.IO;
+using System.Net.Http;
 using ClosedXML.Excel;
+using ClosedXML.Excel.Drawings;
 using UmiaPP.Models;
 
 namespace UmiaPP.Services;
@@ -29,12 +32,10 @@ internal static class InspectionWorkbookExporter
             sheet.Column(6).Width = 18;
             sheet.Column(7).Width = 12;
             sheet.Column(8).Width = 12;
+            sheet.Row(1).Height = 22;
+            sheet.Row(2).Height = 22;
 
-            sheet.Cell(1, 1).Value = "umia";
-            sheet.Range(1, 1, 1, 3).Merge();
-            sheet.Cell(1, 1).Style.Font.FontSize = 28;
-            sheet.Cell(1, 1).Style.Font.Bold = true;
-            sheet.Cell(1, 1).Style.Font.FontColor = XLColor.FromArgb(227, 82, 5);
+            AddLogo(sheet);
 
             sheet.Cell(1, 6).Value = $"Projektnummer: {workOrder}";
             sheet.Range(1, 6, 1, 8).Merge();
@@ -123,6 +124,77 @@ internal static class InspectionWorkbookExporter
             sheet.PageSetup.FitToPages(1, 0);
             workbook.SaveAs(filePath);
         });
+    }
+
+    private const string LogoUrl = "https://raw.githubusercontent.com/FoJjen/UmiaPP/master/Resources/logo.jpg";
+
+    private static void AddLogo(IXLWorksheet sheet)
+    {
+        var stream = OpenLogoStream();
+        if (stream is not null)
+        {
+            using (stream)
+            {
+                var picture = sheet.AddPicture(stream)
+                    .MoveTo(sheet.Cell(1, 1), 2, 2)
+                    .WithSize(150, 42);
+                picture.Placement = XLPicturePlacement.Move;
+            }
+            return;
+        }
+
+        sheet.Cell(1, 1).Value = "umia";
+        sheet.Range(1, 1, 1, 3).Merge();
+        sheet.Cell(1, 1).Style.Font.FontSize = 28;
+        sheet.Cell(1, 1).Style.Font.Bold = true;
+        sheet.Cell(1, 1).Style.Font.FontColor = XLColor.FromArgb(227, 82, 5);
+    }
+
+    private static Stream? OpenLogoStream()
+    {
+        foreach (var path in LogoFileCandidates())
+        {
+            if (File.Exists(path))
+                return File.OpenRead(path);
+        }
+
+        var cached = CacheLogoFromGitHub();
+        return cached != null && File.Exists(cached) ? File.OpenRead(cached) : null;
+    }
+
+    private static IEnumerable<string> LogoFileCandidates()
+    {
+        yield return Path.Combine(AppContext.BaseDirectory, "Resources", "logo.jpg");
+        yield return Path.Combine(AppContext.BaseDirectory, "logo.jpg");
+        var cache = CachedLogoPath();
+        if (!string.IsNullOrWhiteSpace(cache))
+            yield return cache;
+    }
+
+    private static string CachedLogoPath()
+    {
+        var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "UmiaPP");
+        Directory.CreateDirectory(folder);
+        return Path.Combine(folder, "logo.jpg");
+    }
+
+    private static string? CacheLogoFromGitHub()
+    {
+        try
+        {
+            var cachePath = CachedLogoPath();
+            using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(8) };
+            using var response = client.GetAsync(LogoUrl).GetAwaiter().GetResult();
+            response.EnsureSuccessStatusCode();
+            var bytes = response.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult();
+            if (bytes.Length == 0) return null;
+            File.WriteAllBytes(cachePath, bytes);
+            return cachePath;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static void Label(IXLWorksheet sheet, int row, int column, string text)
