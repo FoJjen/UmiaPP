@@ -1,0 +1,348 @@
+using System.Globalization;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+using UmiaPP.Data;
+using UmiaPP.Models;
+using UmiaPP.ViewModels;
+using UmiaPP.Views;
+
+internal static class PackageQuoteChecks
+{
+	private static int _checks;
+
+	[STAThread]
+	private static void Main()
+	{
+		CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("sv-SE");
+		CheckPrices();
+		CheckEditor();
+		CheckDeleteEditor();
+		CheckDeletePersistenceAndTotals();
+		CheckPersistence();
+		CheckEditorView();
+		Console.WriteLine($"PASS: {_checks} package-quote regression checks.");
+	}
+
+	private static void Check(bool condition, string name)
+	{
+		if (!condition) throw new InvalidOperationException(name);
+		_checks++;
+		Console.WriteLine($"PASS: {name}");
+	}
+
+	private static void Equal(double expected, double? actual, string name)
+		=> Check(actual.HasValue && Math.Abs(expected - actual.Value) < 0.000001, name);
+
+	private static LubeSakvaraOffert Quote() => new()
+	{
+		Id = 7, ProjectId = 1, IsPackageQuote = true, Leverantor = "Original supplier",
+		Produktgrupp = "Q-7", OffereratPris = 1200, QuoteDate = new DateTime(2026, 1, 15), Valuta = "SEK"
+	};
+
+	private static LubeSakvaraMangd[] Articles() =>
+	[
+		new() { Id = 1, ProjectId = 1, PackageQuoteId = 7, Beteckning = "A", Antal = 6, PrisNto = 600 },
+		new() { Id = 2, ProjectId = 1, PackageQuoteId = 7, Beteckning = "B", Antal = 9, PrisNto = 900 }
+	];
+
+	private static void CheckPrices()
+	{
+		var articles = Articles();
+		var summary = new LubeSakvaraMangd
+		{
+			IsQuoteSummaryRow = true, SummaryQuoteId = 7,
+			PrisNto = articles.Sum(row => row.PrisNto), Offertpris = 0, Slutpris = 0
+		};
+		Equal(1500, summary.PrisNto, "Quote baseline sums row net amounts, not quantity times row amounts");
+		Equal(0, summary.EffectiveOffertpris, "A zero quote price does not fall back to calculated net cost");
+		Equal(0, summary.EffectiveSlutpris, "A zero summary final amount remains zero");
+		Check(!summary.IsOffertprisFallback && !summary.IsSlutprisFallback, "Summary zero prices are not marked as article fallbacks");
+		summary.Offertpris = 1200;
+		summary.Slutpris = 1100;
+		Equal(-100, summary.Differens, "Existing final-versus-quoted difference semantics remain unchanged");
+		Equal(0, articles.Sum(row => row.EffectiveOffertpris), "Linked articles do not contribute the quote price individually");
+		Equal(1500, articles.Sum(row => row.PrisNto), "Calculated article totals do not include the display-only summary");
+		Equal(250, new LubeSakvaraMangd { PrisNto = 250 }.EffectiveOffertpris, "Ordinary unlinked article fallback still works");
+	}
+
+	private static void CheckEditor()
+	{
+		var quote = Quote();
+		var rows = Articles();
+		var saves = 0;
+		var closed = false;
+		using (var editor = new PackageQuoteEditorViewModel(quote, rows, _ => { saves++; return Task.CompletedTask; }))
+		{
+			editor.CloseAction = () => closed = true;
+			Equal(1500, editor.CalculatedNetAmount, "Editor shows linked net baseline");
+			Equal(-300, editor.QuoteDifference, "Comparison uses quoted price minus calculated net cost");
+			editor.FinalAmountInput = "9999";
+			Equal(-300, editor.QuoteDifference, "Final amount does not replace the selected quoted-price comparison");
+			editor.QuotedAmountInput = "1600";
+			Check(editor.IsQuoteMoreExpensive, "Higher quotes are identified explicitly");
+			editor.QuotedAmountInput = "1500";
+			Equal(0, editor.QuoteDifference, "Equal quote and baseline give zero difference");
+			rows[0].PrisNto = 650;
+			Equal(1550, editor.CalculatedNetAmount, "Editor baseline follows article net-price changes");
+			Equal(-50, editor.QuoteDifference, "Comparison refreshes after article changes");
+			editor.Supplier = "Unsaved supplier";
+			editor.CancelCommand.Execute(null);
+			Check(closed && saves == 0 && !editor.IsSaved, "Cancel closes without saving");
+			Check(quote.Leverantor == "Original supplier" && quote.OffereratPris == 1200, "Cancel does not mutate the live quote");
+		}
+
+		LubeSakvaraOffert? draft = null;
+		using (var editor = new PackageQuoteEditorViewModel(quote, Articles(), value => { draft = value; return Task.CompletedTask; }))
+		{
+			editor.Supplier = "Updated supplier";
+			editor.QuotedAmountInput = "1 200,25";
+			editor.FinalAmountInput = "1 100,50";
+			editor.CloseAction = () => Check(!editor.IsSaving, "Dialog closes only after saving state is cleared");
+			editor.SaveCommand.ExecuteAsync(null).GetAwaiter().GetResult();
+			Check(editor.IsSaved && draft != null && !ReferenceEquals(draft, quote), "Save passes a detached quote draft");
+			Equal(1200.25, draft!.OffereratPris, "Swedish amount input preserves decimals");
+			Equal(1100.50, draft.FinalAmount, "Optional final amount is saved");
+			Check(draft.Id == quote.Id && draft.ProjectId == quote.ProjectId, "Editing retains the existing quote identity");
+			Check(quote.Leverantor == "Original supplier", "The editor leaves live-object updates to the successful persistence callback");
+		}
+
+		using (var editor = new PackageQuoteEditorViewModel(quote, Articles(), _ => { saves++; return Task.CompletedTask; }))
+		{
+			foreach (var invalid in new[] { "-1", "NaN", "Infinity", "1e999", "not a number" })
+			{
+				editor.QuotedAmountInput = invalid;
+				editor.SaveCommand.ExecuteAsync(null).GetAwaiter().GetResult();
+				Check(saves == 0 && !string.IsNullOrWhiteSpace(editor.ErrorMessage), "Invalid quote amount cannot reach persistence: " + invalid);
+			}
+			editor.QuotedAmountInput = "1200";
+			editor.QuoteDate = null;
+			editor.SaveCommand.ExecuteAsync(null).GetAwaiter().GetResult();
+			Check(saves == 0, "Missing date blocks saving");
+		}
+
+		using (var editor = new PackageQuoteEditorViewModel(quote, Articles(), _ => Task.FromException(new InvalidOperationException("test save failure"))))
+		{
+			closed = false;
+			editor.CloseAction = () => closed = true;
+			editor.QuotedAmountInput = "900";
+			editor.SaveCommand.ExecuteAsync(null).GetAwaiter().GetResult();
+			Check(!closed && !editor.IsSaved && !editor.IsSaving && editor.ErrorMessage.Contains("test save failure"), "Failed save keeps the draft open and allows retry");
+			Equal(1200, quote.OffereratPris, "Failed save does not modify the original amount");
+		}
+	}
+
+	private static void CheckDeleteEditor()
+	{
+		var quote = Quote();
+		var calls = 0;
+		var closed = false;
+		using (var editor = new PackageQuoteEditorViewModel(quote, Articles(), _ => Task.CompletedTask,
+			() => { calls++; return Task.CompletedTask; }, () => false))
+		{
+			editor.CloseAction = () => closed = true;
+			editor.DeleteCommand.ExecuteAsync(null).GetAwaiter().GetResult();
+			Check(calls == 0 && !closed && !editor.IsDeleted && !editor.IsSaving,
+				"Declining confirmation does not delete or close the editor");
+		}
+		using (var editor = new PackageQuoteEditorViewModel(quote, Articles(), _ => Task.CompletedTask,
+			() => Task.FromException(new InvalidOperationException("delete failed")), () => true))
+		{
+			editor.CloseAction = () => closed = true;
+			editor.DeleteCommand.ExecuteAsync(null).GetAwaiter().GetResult();
+			Check(!closed && !editor.IsDeleted && !editor.IsSaving && editor.ErrorMessage.Contains("delete failed"),
+				"Failed deletion keeps the editor open and reports the error");
+			Check(editor.DeleteCommand.CanExecute(null), "Failed deletion can be retried");
+		}
+		var completion = new TaskCompletionSource<bool>();
+		using (var editor = new PackageQuoteEditorViewModel(quote, Articles(), _ => throw new Exception("Unexpected save"),
+			() => { calls++; return completion.Task; }, () => true))
+		{
+			editor.CloseAction = () => { Check(!editor.IsSaving, "Busy state clears before closing after deletion"); closed = true; };
+			editor.QuotedAmountInput = "unsaved invalid draft";
+			var operation = editor.DeleteCommand.ExecuteAsync(null);
+			Check(editor.IsSaving && !editor.SaveCommand.CanExecute(null) && !editor.CancelCommand.CanExecute(null)
+				&& !editor.DeleteCommand.CanExecute(null) && !editor.BrowseCommand.CanExecute(null),
+				"Saving, deletion, cancellation and browsing are disabled during deletion");
+			editor.DeleteCommand.ExecuteAsync(null).GetAwaiter().GetResult();
+			Check(calls == 1, "Duplicate delete execution cannot start a second operation");
+			completion.SetResult(true);
+			operation.GetAwaiter().GetResult();
+			Check(closed && editor.IsDeleted && !editor.IsSaved, "Confirmed deletion closes without saving the draft");
+			Check(!editor.SaveCommand.CanExecute(null), "A deleted quote cannot be saved again by the editor");
+		}
+		using var unsupported = new PackageQuoteEditorViewModel(quote, Articles(), _ => Task.CompletedTask);
+		Check(!unsupported.DeleteCommand.CanExecute(null), "Editors without delete callbacks cannot delete");
+	}
+
+	private static void CheckDeletePersistenceAndTotals()
+	{
+		var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"umia-delete-quote-{Guid.NewGuid():N}.db");
+		var attachment = path + ".pdf";
+		try
+		{
+			System.IO.File.WriteAllText(attachment, "test attachment");
+			using (var db = new AppDbContext(path))
+				SqliteSchemaSynchronizer.SynchronizeAsync(db).GetAwaiter().GetResult();
+			var repository = new ProjectRepository(() => new AppDbContext(path));
+			var project = repository.CreateAsync(new Project { Name = "Deletion", ProjectNumber = "DEL" }).GetAwaiter().GetResult();
+			var other = repository.CreateAsync(new Project { Name = "Other", ProjectNumber = "OTHER" }).GetAwaiter().GetResult();
+			var first = new LubeSakvaraMangd { ProjectId = project.Id, Beteckning = "A", PrisNto = 200, Offertpris = 195, Slutpris = 190 };
+			var second = new LubeSakvaraMangd { ProjectId = project.Id, Beteckning = "B", PrisNto = 100 };
+			repository.SaveSakvaraSpecificationRowAsync(first).GetAwaiter().GetResult();
+			repository.SaveSakvaraSpecificationRowAsync(second).GetAwaiter().GetResult();
+			var quote = new LubeSakvaraOffert { ProjectId = project.Id, Produktgrupp = "Delete me", OffereratPris = 250, FinalAmount = 240, FilePath = attachment };
+			repository.SavePackageQuoteAsync(quote, new[] { first.Id, second.Id }).GetAwaiter().GetResult();
+			var rejected = false;
+			try { repository.DeletePackageQuoteAsync(other.Id, quote.Id).GetAwaiter().GetResult(); }
+			catch (InvalidOperationException) { rejected = true; }
+			Check(rejected, "A quote cannot be deleted through another project");
+			using (var db = new AppDbContext(path))
+				db.Database.ExecuteSqlRaw("CREATE TRIGGER RejectQuoteDelete BEFORE DELETE ON LubeSakvarorOfferter BEGIN SELECT RAISE(ABORT, 'test delete failure'); END;");
+			rejected = false;
+			try { repository.DeletePackageQuoteAsync(project.Id, quote.Id).GetAwaiter().GetResult(); }
+			catch (DbUpdateException) { rejected = true; }
+			var loaded = repository.GetByIdAsync(project.Id).GetAwaiter().GetResult()!;
+			Check(rejected && loaded.LubeSakvarorOfferter.Any(q => q.Id == quote.Id)
+				&& loaded.LubeSakvarorMangder.All(row => row.PackageQuoteId == quote.Id),
+				"A failed delete rolls back both quote removal and article unlinking");
+			using (var db = new AppDbContext(path))
+				db.Database.ExecuteSqlRaw("DROP TRIGGER RejectQuoteDelete;");
+			loaded.LubeSummaryJson = System.Text.Json.JsonSerializer.Serialize(new LubeCalculationSummary
+			{
+				ReportSections =
+				[
+					new() { Title = "LEVERANSER", Rows =
+					[
+						new() { Label = "Sakvaror", NetAmount = 300 },
+						new() { Label = "SUMMA LEVERANS", NetAmount = 300, IsTotal = true }
+					] },
+					new() { Rows = [new() { Label = "TOTAL PRODUKTIONSKOSTNAD", NetAmount = 400, IsTotal = true }] }
+				]
+			});
+			var vm = new LubeCalculationTabViewModel(loaded,
+				new LocalDataService(repository, () => new AppDbContext(path)),
+				new UmiaPP.Services.LubeImportService(), new UmiaPP.Services.DialogService());
+			Equal(240, vm.SumSlutpris, "Before deletion the package quote is counted once");
+			vm.DeletePackageQuoteAsync(quote.Id).GetAwaiter().GetResult();
+			Equal(290, vm.SumSlutpris, "Deleting a quote restores article final-price fallbacks");
+			Equal(390, vm.Summary.ActualProductionCost, "Deleting a quote refreshes production outcome");
+			Check(!vm.SpecificationRows.Any(row => row.IsQuoteSummaryRow), "Deleted quote display rows disappear");
+			Check(!loaded.LubeSakvarorOfferter.Any(q => q.Id == quote.Id), "Project navigation no longer contains the deleted quote");
+			loaded = repository.GetByIdAsync(project.Id).GetAwaiter().GetResult()!;
+			Check(loaded.LubeSakvarorOfferter.Count == 0 && loaded.LubeSakvarorMangder.Count == 2
+				&& loaded.LubeSakvarorMangder.All(row => row.PackageQuoteId == null),
+				"Reload confirms quote deletion without article deletion or dangling links");
+			var retained = loaded.LubeSakvarorMangder.Single(row => row.Id == first.Id);
+			Check(retained.PrisNto == 200 && retained.Offertpris == 195 && retained.Slutpris == 190,
+				"Article net, quoted and final prices survive deletion unchanged");
+			Check(System.IO.File.Exists(attachment), "Deleting a quote does not remove its attachment file");
+			var empty = new LubeSakvaraOffert { ProjectId = project.Id, Produktgrupp = "No articles" };
+			repository.SavePackageQuoteAsync(empty, Array.Empty<int>()).GetAwaiter().GetResult();
+			repository.DeletePackageQuoteAsync(project.Id, empty.Id).GetAwaiter().GetResult();
+			Check(repository.GetByIdAsync(project.Id).GetAwaiter().GetResult()!.LubeSakvarorOfferter.Count == 0,
+				"Quotes without articles can also be deleted");
+		}
+		finally
+		{
+			SqliteConnection.ClearAllPools();
+			foreach (var suffix in new[] { "", "-wal", "-shm", ".pdf" })
+				if (System.IO.File.Exists(path + suffix)) System.IO.File.Delete(path + suffix);
+		}
+	}
+
+	private sealed class MemoryContext : AppDbContext
+	{
+		private readonly SqliteConnection _connection;
+		public MemoryContext(SqliteConnection connection) : base(":memory:") => _connection = connection;
+		protected override void OnConfiguring(DbContextOptionsBuilder options) => options.UseSqlite(_connection);
+	}
+
+	private static void CheckPersistence()
+	{
+		using var connection = new SqliteConnection("Data Source=:memory:");
+		connection.Open();
+		AppDbContext Factory() => new MemoryContext(connection);
+		int projectId;
+		int[] articleIds;
+		using (var context = Factory())
+		{
+			context.Database.EnsureCreated();
+			var project = new Project { Name = "Quote regression checks", ProjectNumber = "QUOTE-TEST", Client = "Test" };
+			context.Projects.Add(project);
+			context.SaveChanges();
+			projectId = project.Id;
+			var rows = new[]
+			{
+				new LubeSakvaraMangd { ProjectId = projectId, Beteckning = "A", Antal = 6, PrisNto = 600 },
+				new LubeSakvaraMangd { ProjectId = projectId, Beteckning = "B", Antal = 9, PrisNto = 900 }
+			};
+			context.LubeSakvarorMangder.AddRange(rows);
+			context.SaveChanges();
+			articleIds = rows.Select(row => row.Id).ToArray();
+		}
+		var repository = new ProjectRepository(Factory);
+		var quote = new LubeSakvaraOffert { ProjectId = projectId, Produktgrupp = "Q-1", OffereratPris = 1200, IsPackageQuote = true };
+		repository.SavePackageQuoteAsync(quote, articleIds).GetAwaiter().GetResult();
+		Check(quote.Id > 0, "New package quote is persisted");
+		var edited = new LubeSakvaraOffert
+		{
+			Id = quote.Id, ProjectId = projectId, Produktgrupp = "Q-1 edited", Leverantor = "Updated",
+			OffereratPris = 1100, FinalAmount = 1050, IsPackageQuote = true
+		};
+		repository.SavePackageQuoteAsync(edited, Array.Empty<int>()).GetAwaiter().GetResult();
+		using (var context = Factory())
+		{
+			var loaded = context.LubeSakvarorOfferter.Single();
+			Equal(1100, loaded.OffereratPris, "Edited quote amount survives reload");
+			Equal(1050, loaded.FinalAmount, "Edited final amount survives reload");
+			Check(loaded.Id == quote.Id && loaded.Produktgrupp == "Q-1 edited", "Saving updates rather than duplicates the quote");
+			Check(context.LubeSakvarorMangder.All(row => row.PackageQuoteId == quote.Id), "Detail-only saves retain every article link");
+			Equal(1500, context.LubeSakvarorMangder.Sum(row => row.PrisNto), "Editing the quote does not overwrite article net costs");
+		}
+
+		edited.OffereratPris = 9999;
+		var rejected = false;
+		try { repository.SavePackageQuoteAsync(edited, new[] { int.MaxValue }).GetAwaiter().GetResult(); }
+		catch (InvalidOperationException) { rejected = true; }
+		using (var context = Factory())
+		{
+			Check(rejected, "Missing articles reject a quote/link save");
+			Equal(1100, context.LubeSakvarorOfferter.Single().OffereratPris, "Failed article validation rolls back quote changes atomically");
+		}
+		var orphan = new LubeSakvaraOffert { ProjectId = projectId, Produktgrupp = "Must roll back", IsPackageQuote = true };
+		try { repository.SavePackageQuoteAsync(orphan, new[] { int.MaxValue }).GetAwaiter().GetResult(); }
+		catch (InvalidOperationException) { }
+		using (var context = Factory())
+			Check(orphan.Id == 0 && context.LubeSakvarorOfferter.Count() == 1, "A failed new quote/link save leaves no orphaned quote");
+	}
+
+	private static IEnumerable<T> Descendants<T>(DependencyObject parent) where T : DependencyObject
+	{
+		foreach (var child in LogicalTreeHelper.GetChildren(parent).OfType<DependencyObject>())
+		{
+			if (child is T match) yield return match;
+			foreach (var nested in Descendants<T>(child)) yield return nested;
+		}
+	}
+
+	private static void CheckEditorView()
+	{
+		var app = Application.Current ?? new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+		var assembly = typeof(LubeSakvaraOffert).Assembly.GetName().Name;
+		app.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri($"/{assembly};component/Resources/Theme.xaml", UriKind.Relative) });
+		app.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri($"/{assembly};component/Resources/ModernTheme.xaml", UriKind.Relative) });
+		using var editor = new PackageQuoteEditorViewModel(Quote(), Articles(), _ => Task.CompletedTask);
+		var window = new PackageQuoteDetailsDialog(editor);
+		try
+		{
+			window.Measure(new Size(860, 780));
+			Check(Descendants<TextBox>(window).Any(input => BindingOperations.GetBinding(input, TextBox.TextProperty)?.Path?.Path == nameof(editor.QuotedAmountInput)), "Quote dialog contains an editable quoted-amount field");
+			Check(Descendants<TextBlock>(window).Any(text => BindingOperations.GetBinding(text, TextBlock.TextProperty)?.Path?.Path == nameof(editor.CalculatedNetAmount)), "Quote dialog displays the calculated net baseline");
+			Check(Descendants<Button>(window).Any(button => BindingOperations.GetBinding(button, Button.CommandProperty)?.Path?.Path == nameof(editor.SaveCommand)), "Quote dialog exposes the Save command");
+		}
+		finally { window.Close(); }
+	}
+}

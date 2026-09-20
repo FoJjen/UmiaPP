@@ -1,52 +1,86 @@
 <UserControl x:Class="UmiaPP.Views.OverviewTabView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="0,18,0,0">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel Margin="0,8,0,0">
         <TextBlock Text="{DynamicResource OverviewHeading}" FontSize="20" FontWeight="SemiBold"/>
-        <TextBlock Text="{DynamicResource OverviewDescription}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,8,0,24"/>
-        <UniformGrid Columns="4" Language="sv-SE">
-            <Border Style="{StaticResource ModernCard}" Margin="0,0,12,0"><StackPanel><TextBlock Text="{DynamicResource TotalHours}" Foreground="{StaticResource TextSecondaryBrush}"/><TextBlock Text="{Binding TotalHours, StringFormat={}{0:N1} h}" FontSize="27" FontWeight="SemiBold" Margin="0,6,0,0"/></StackPanel></Border>
-            <Border Style="{StaticResource ModernCard}" Margin="0,0,12,0"><StackPanel><TextBlock Text="Total produktionskostnad – utfall" Foreground="{StaticResource TextSecondaryBrush}"/><TextBlock Text="{Binding ProductionCost, StringFormat={}{0:N2} kr, TargetNullValue=—}" FontSize="27" FontWeight="SemiBold" Margin="0,6,0,0"/></StackPanel></Border>
-            <Border Style="{StaticResource ModernCard}" Margin="0,0,12,0"><StackPanel><TextBlock Text="{DynamicResource DrawingCount}" Foreground="{StaticResource TextSecondaryBrush}"/><TextBlock Text="{Binding DrawingCount}" FontSize="27" FontWeight="SemiBold" Margin="0,6,0,0"/></StackPanel></Border>
-            <Border Style="{StaticResource ModernCard}"><StackPanel><TextBlock Text="Sakvaror – summa antal" Foreground="{StaticResource TextSecondaryBrush}"/><TextBlock Text="{Binding ComponentCount, StringFormat={}{0:0.##}}" FontSize="27" FontWeight="SemiBold" Margin="0,6,0,0"/></StackPanel></Border>
-        </UniformGrid>
-        <Grid Margin="0,24,0,0">
+        <TextBlock Text="{DynamicResource OverviewDescription}" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,6,0,16"/>
+        <WrapPanel Language="sv-SE">
+            <Border Style="{StaticResource ModernCard}" Width="240" MinHeight="148" Margin="0,0,12,12"><StackPanel>
+                <TextBlock Text="◷" Style="{StaticResource KpiIcon}"/>
+                <TextBlock Text="{DynamicResource TotalHours}" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <TextBlock Text="{Binding TotalHours, StringFormat={}{0:N1} h}" FontSize="24" FontWeight="SemiBold" Margin="0,6,0,0" TextTrimming="CharacterEllipsis" ToolTip="{Binding TotalHours, StringFormat={}{0:N1} h}"/>
+            </StackPanel></Border>
+            <Border Style="{StaticResource ModernCard}" Width="240" MinHeight="148" Margin="0,0,12,12"><StackPanel>
+                <TextBlock Text="∑" Style="{StaticResource KpiIcon}"/>
+                <TextBlock Text="Produktionskostnad – utfall" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+                <TextBlock Text="{Binding ProductionCost, StringFormat={}{0:N2} kr, TargetNullValue=—}" FontSize="24" FontWeight="SemiBold" Margin="0,6,0,0" TextTrimming="CharacterEllipsis" ToolTip="{Binding ProductionCost, StringFormat={}{0:N2} kr, TargetNullValue=—}"/>
+            </StackPanel></Border>
+            <Border Style="{StaticResource ModernCard}" Width="240" MinHeight="148" Margin="0,0,12,12"><StackPanel>
+                <TextBlock Text="▤" Style="{StaticResource KpiIcon}"/>
+                <TextBlock Text="{DynamicResource DrawingCount}" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <TextBlock Text="{Binding DrawingCount}" FontSize="24" FontWeight="SemiBold" Margin="0,6,0,0"/>
+            </StackPanel></Border>
+            <Border Style="{StaticResource ModernCard}" Width="240" MinHeight="148" Margin="0,0,12,12"><StackPanel>
+                <TextBlock Text="▦" Style="{StaticResource KpiIcon}"/>
+                <TextBlock Text="Sakvaror – summa antal" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                <TextBlock Text="{Binding ComponentCount, StringFormat={}{0:0.##}}" FontSize="24" FontWeight="SemiBold" Margin="0,6,0,0"/>
+            </StackPanel></Border>
+        </WrapPanel>
+        <Grid Margin="0,4,0,0" Language="sv-SE">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
             <Border Style="{StaticResource ModernCard}" Margin="0,0,12,0">
                 <StackPanel>
+                    <TextBlock Text="%" Style="{StaticResource KpiIcon}"/>
                     <TextBlock Text="{DynamicResource CurrentTg}" FontSize="18" FontWeight="SemiBold"/>
-                    <TextBlock Text="{Binding CurrentTg, StringFormat={}{0:N1} %, TargetNullValue=—}" FontSize="32" FontWeight="SemiBold" Margin="0,6,0,8"/>
-                    <TextBlock Text="Aktuell intäkt inklusive godkänd ÄTA för projektets teknik" Foreground="{StaticResource TextSecondaryBrush}"/>
-                    <TextBlock Text="{Binding CurrentRevenue, StringFormat={}{0:N2} kr, TargetNullValue=—}"/>
-                    <TextBlock Text="{DynamicResource LubeProductionCost}" Foreground="{StaticResource TextSecondaryBrush}"/>
-                    <TextBlock Text="{Binding ProductionCost, StringFormat={}{0:N2} kr, TargetNullValue=—}"/>
-                    <TextBlock Text="Aktuellt resultat" Foreground="{StaticResource TextSecondaryBrush}"/>
-                    <TextBlock Text="{Binding CurrentProfit, StringFormat={}{0:N2} kr, TargetNullValue=—}"/>
-                    <TextBlock Text="TG = (aktuell intäkt − aktuell kostnad) / aktuell intäkt × 100. Uppdateras direkt från Kalkylsammandragets utfall. Prisändringar förhandsvisas under redigering och sparas när raden bekräftas." TextWrapping="Wrap" Margin="0,8,0,0" Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <TextBlock Text="{Binding CurrentTg, StringFormat={}{0:N1} %, TargetNullValue=—}" FontSize="32" FontWeight="SemiBold" Margin="0,6,0,12">
+                        <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/><Style.Triggers><DataTrigger Binding="{Binding IsNegativeMargin}" Value="True"><Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                    </TextBlock>
+                    <ProgressBar Value="{Binding MarginGaugeValue, Mode=OneWay}" AutomationProperties.Name="{DynamicResource CurrentTg}" ToolTip="{Binding MarginGaugeDescription}">
+                        <ProgressBar.Style><Style TargetType="ProgressBar" BasedOn="{StaticResource MarginGauge}"><Style.Triggers><DataTrigger Binding="{Binding HasMargin}" Value="False"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger><DataTrigger Binding="{Binding IsNegativeMargin}" Value="True"><Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/></DataTrigger></Style.Triggers></Style></ProgressBar.Style>
+                    </ProgressBar>
+                    <TextBlock Text="{Binding MarginGaugeDescription}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,18"/>
+                    <Grid Margin="0,0,0,18">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <TextBlock Text="Målprognos TG" Margin="0,0,12,8" ToolTip="Ange målprognos i Redigera projekt."/>
+                        <TextBlock Grid.Column="1" Text="{Binding TargetTg, StringFormat={}{0:N1} %, TargetNullValue=—}" TextAlignment="Right"/>
+                        <TextBlock Grid.Row="1" Text="Avvikelse mot mål (procentenheter)" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,12,0" TextWrapping="Wrap"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding TargetTgVariance, StringFormat={}{0:+0.0;−0.0;0.0}, TargetNullValue=—}" TextAlignment="Right"/>
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <TextBlock Text="Aktuell intäkt inkl. godkänd ÄTA" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,12,10" TextWrapping="Wrap"/>
+                        <TextBlock Grid.Column="1" Text="{Binding CurrentRevenue, StringFormat={}{0:N2} kr, TargetNullValue=—}" TextAlignment="Right"/>
+                        <TextBlock Grid.Row="1" Text="{DynamicResource LubeProductionCost}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,12,10" TextWrapping="Wrap"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ProductionCost, StringFormat={}{0:N2} kr, TargetNullValue=—}" TextAlignment="Right"/>
+                        <TextBlock Grid.Row="2" Text="Aktuellt resultat" FontWeight="SemiBold" Margin="0,0,12,0"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding CurrentProfit, StringFormat={}{0:N2} kr, TargetNullValue=—}" FontWeight="SemiBold" TextAlignment="Right"/>
+                    </Grid>
+                    <Expander Header="Så beräknas TG" Margin="0,16,0,0" Foreground="{DynamicResource TextSecondaryBrush}">
+                        <TextBlock Text="TG = (aktuell intäkt − aktuell kostnad) / aktuell intäkt × 100. Uppdateras direkt från Kalkylsammandragets utfall. Prisändringar förhandsvisas under redigering och sparas när raden bekräftas." TextWrapping="Wrap" Margin="0,8,0,0" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    </Expander>
                 </StackPanel>
             </Border>
             <Border Grid.Column="1" Style="{StaticResource ModernCard}">
                 <StackPanel>
-                    <DockPanel>
-                        <Button DockPanel.Dock="Right" Content="Kopiera leveransinformation" Command="{Binding CopyDeliveryInfoCommand}" Style="{StaticResource SecondaryButton}"/>
-                        <TextBlock Text="Leveransinformation" FontSize="18" FontWeight="SemiBold"/>
-                    </DockPanel>
-                    <TextBlock Text="Märke" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,12,0,0"/>
+                    <TextBlock Text="Leveransinformation" FontSize="18" FontWeight="SemiBold"/>
+                    <TextBlock Text="Märke" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,16,0,0"/>
                     <TextBlock FontSize="22" FontWeight="SemiBold">
                         <Run Text="{Binding DeliveryMark, Mode=OneWay}"/>
                         <Run Text=" ("/><Run Text="{Binding DeliveryDiscipline, Mode=OneWay}"/><Run Text=")"/>
                     </TextBlock>
-                    <TextBlock Text="Leveransadress" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,8,0,0"/>
+                    <TextBlock Text="Leveransadress" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,12,0,0"/>
                     <TextBlock Text="{Binding Project.DeliveryAddress, TargetNullValue=—}" TextWrapping="Wrap"/>
-                    <TextBlock Text="Kontaktperson" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,8,0,0"/>
+                    <TextBlock Text="Kontaktperson" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,12,0,0"/>
                     <TextBlock Text="{Binding Project.ContactPerson, TargetNullValue=—}"/>
-                    <TextBlock Text="Fakturauppgift" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,8,0,0"/>
+                    <TextBlock Text="Fakturauppgift" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,12,0,0"/>
                     <TextBlock Text="{Binding Project.InvoiceDetails, TargetNullValue=—}" TextWrapping="Wrap"/>
-                    <TextBlock Text="Märket skapas som projektnummer + teknikkod: VE 50, VS 70, EL 30, SÖE 90. Adress, kontakt och fakturauppgift redigeras i projektuppgifterna." TextWrapping="Wrap" Margin="0,10,0,0" Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <Button Content="Kopiera leveransinformation" Command="{Binding CopyDeliveryInfoCommand}" Style="{StaticResource SecondaryButton}" HorizontalAlignment="Left" Margin="0,18,0,0"/>
+                    <TextBlock Text="Märket skapas som projektnummer + teknikkod: VE 50, VS 70, EL 30, SÖE 90. Adress, kontakt och fakturauppgift redigeras i projektuppgifterna." TextWrapping="Wrap" Margin="0,10,0,0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"/>
                 </StackPanel>
             </Border>
         </Grid>
-        <Border Style="{StaticResource ModernCard}" Margin="0,24,0,0"><StackPanel><TextBlock Text="Kommande uppföljning" FontSize="18" FontWeight="SemiBold"/><TextBlock Text="Grafer för budget, prognos, arbetade timmar och inköpsstatus visas här när relevanta data har registrerats." Foreground="{StaticResource TextSecondaryBrush}" Margin="0,8,0,0"/></StackPanel></Border>
     </StackPanel></ScrollViewer>
 </UserControl>

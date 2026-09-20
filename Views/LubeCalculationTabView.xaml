@@ -1,89 +1,93 @@
 <UserControl x:Class="UmiaPP.Views.LubeCalculationTabView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:converters="clr-namespace:UmiaPP.Converters" xmlns:views="clr-namespace:UmiaPP.Views">
     <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../Resources/LubeTableStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
         <converters:DifferensRowBrushConverter x:Key="DifferensRowBrush"/>
         <converters:KoptButtonTextConverter x:Key="KoptButtonText"/>
-        <Style x:Key="RightAlignCell" TargetType="TextBlock">
+        <Style x:Key="RightAlignCell" TargetType="TextBlock" BasedOn="{StaticResource CompactLubeNumericText}">
             <Setter Property="HorizontalAlignment" Value="Right"/>
         </Style>
-        <Style x:Key="RightAlignEdit" TargetType="TextBox">
+        <Style x:Key="RightAlignEdit" TargetType="TextBox" BasedOn="{StaticResource CompactLubeNumericEdit}">
             <Setter Property="HorizontalContentAlignment" Value="Right"/>
         </Style>
-        <Style x:Key="SakvaraReportRow" TargetType="DataGridRow">
-            <Setter Property="Background" Value="#99CCFF"/>
-            <Setter Property="Foreground" Value="Black"/>
-            <Setter Property="MinHeight" Value="19"/>
+        <Style x:Key="SakvaraReportRow" TargetType="DataGridRow" BasedOn="{StaticResource CompactLubeGridRow}">
         </Style>
         <Style x:Key="SakvaraRowStyle" TargetType="DataGridRow" BasedOn="{StaticResource SakvaraReportRow}">
-            <Setter Property="Background" Value="{Binding Differens, Converter={StaticResource DifferensRowBrush}}"/>
+            <Setter Property="BorderBrush" Value="{Binding Differens, Converter={StaticResource DifferensRowBrush}}"/>
+            <Setter Property="BorderThickness" Value="3,0,0,0"/>
             <Style.Triggers>
                 <DataTrigger Binding="{Binding Differens}" Value="0">
-                    <Setter Property="Background" Value="#99CCFF"/>
+                    <Setter Property="BorderBrush" Value="Transparent"/>
                 </DataTrigger>
             </Style.Triggers>
         </Style>
-        <Style x:Key="SakvaraReportHeader" TargetType="DataGridColumnHeader">
-            <Setter Property="FontFamily" Value="Arial"/>
-            <Setter Property="FontSize" Value="11"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Foreground" Value="Black"/>
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="Padding" Value="6,2"/>
-            <Setter Property="BorderBrush" Value="Black"/>
-            <Setter Property="BorderThickness" Value="0,0,1,1"/>
-            <Setter Property="HorizontalContentAlignment" Value="Left"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Style x:Key="SakvaraReportHeader" TargetType="DataGridColumnHeader" BasedOn="{StaticResource CompactLubeGridHeader}">
         </Style>
-        <Style x:Key="SakvaraReportCell" TargetType="DataGridCell">
-            <Setter Property="Foreground" Value="Black"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Padding" Value="6,2"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="Transparent"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="DataGridCell">
-                        <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
-                            <ContentPresenter VerticalAlignment="Center"/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-            <Style.Triggers>
-                <Trigger Property="IsSelected" Value="True"><Setter Property="BorderBrush" Value="#124E78"/></Trigger>
-                <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter Property="BorderBrush" Value="Black"/></Trigger>
-            </Style.Triggers>
+        <Style x:Key="SakvaraReportCell" TargetType="DataGridCell" BasedOn="{StaticResource CompactLubeGridCell}">
         </Style>
-        <Style x:Key="SakvaraReportGrid" TargetType="DataGrid" BasedOn="{StaticResource {x:Type DataGrid}}">
-            <Setter Property="FontFamily" Value="Arial"/>
-            <Setter Property="FontSize" Value="11"/>
-            <Setter Property="FontWeight" Value="Normal"/>
-            <Setter Property="Foreground" Value="Black"/>
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="BorderBrush" Value="Black"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="GridLinesVisibility" Value="All"/>
-            <Setter Property="HorizontalGridLinesBrush" Value="Black"/>
-            <Setter Property="VerticalGridLinesBrush" Value="Black"/>
-            <Setter Property="RowBackground" Value="#99CCFF"/>
-            <Setter Property="AlternatingRowBackground" Value="#99CCFF"/>
-            <Setter Property="RowHeight" Value="NaN"/>
-            <Setter Property="MinRowHeight" Value="19"/>
-            <Setter Property="ColumnHeaderHeight" Value="NaN"/>
+        <Style x:Key="SakvaraReportGrid" TargetType="DataGrid" BasedOn="{StaticResource CompactLubeDataGrid}">
             <Setter Property="RowStyle" Value="{StaticResource SakvaraReportRow}"/>
             <Setter Property="ColumnHeaderStyle" Value="{StaticResource SakvaraReportHeader}"/>
             <Setter Property="CellStyle" Value="{StaticResource SakvaraReportCell}"/>
         </Style>
+        <Style x:Key="ProductCodeChangedCell" TargetType="DataGridCell" BasedOn="{StaticResource SakvaraReportCell}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsProduktkodChanged}" Value="True">
+                    <Setter Property="Background" Value="#FFF8E1"/>
+                    <Setter Property="Foreground" Value="#5D4037"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="SupplierChangedCell" TargetType="DataGridCell" BasedOn="{StaticResource SakvaraReportCell}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsLeverantorChanged}" Value="True">
+                    <Setter Property="Background" Value="#FFF8E1"/>
+                    <Setter Property="Foreground" Value="#5D4037"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        </ResourceDictionary>
     </UserControl.Resources>
-    <Grid Margin="0,18,0,0"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-        <DockPanel><Button Content="{DynamicResource ImportLubeBtn}" Command="{Binding ImportLubeExcelCommand}" Style="{StaticResource AccentButton}" DockPanel.Dock="Left"/><TextBox Width="250" HorizontalAlignment="Right" Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}" ToolTip="{DynamicResource FilterPlaceholder}"/></DockPanel>
+    <Grid Margin="0,8,0,0"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        <Grid>
+    <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="Auto"/>
+    </Grid.ColumnDefinitions>
+    <Button x:Name="ImportProductionCalculationButton"
+            Grid.Column="0"
+            Content="{DynamicResource ImportLubeBtn}"
+            Command="{Binding ImportLubeExcelCommand}"
+            Style="{StaticResource PrimaryButton}"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Center"
+            Visibility="Visible"
+            ToolTip="{DynamicResource ImportLubeBtn}"
+            AutomationProperties.Name="{DynamicResource ImportLubeBtn}"/>
+    <TextBox Grid.Column="2"
+             Width="300"
+             Margin="16,0,0,0"
+             HorizontalAlignment="Right"
+             VerticalAlignment="Center"
+             Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}"
+             Style="{StaticResource SearchTextBox}"
+             Tag="{DynamicResource FilterPlaceholder}"
+             ToolTip="{DynamicResource FilterPlaceholder}"
+             AutomationProperties.Name="{DynamicResource FilterPlaceholder}"/>
+</Grid>
         <Grid Grid.Row="1" Margin="0,16,0,0">
         <TabControl SelectedIndex="{Binding SelectedLubeTabIndex}">
             <!-- 1. Kalkylsammandrag (Exakt som Bild 2) -->
             <TabItem Header="{DynamicResource SubTabSammandrag}">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Visible">
                     <StackPanel>
-                    <Border Width="885" HorizontalAlignment="Left" Margin="12" Padding="10" Background="White" BorderBrush="Black" BorderThickness="1" Language="sv-SE">
+                    <Border Padding="10" Background="White" BorderBrush="Black" BorderThickness="1" Language="sv-SE">
                         <StackPanel>
                             <StackPanel.Resources>
                                 <Style TargetType="TextBlock">
@@ -110,22 +114,36 @@
 
             <!-- 2. Sakvaror (Bild 3 och Bild 4) -->
             <TabItem Header="{DynamicResource SubTabSakvarorSpec}" Visibility="{Binding SakvarorSpecTab.IsVisible, Converter={StaticResource BoolToVis}}">
-                <Grid Margin="12" TextElement.FontFamily="Arial" TextElement.FontSize="11">
+                <Grid Margin="12">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
-                    <Button Content="Ny rad" Command="{Binding AddSakvaraRowCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,0,8" ToolTip="Observera att filtret rensas när en ny rad skapas"/>
-                    <Button Content="Kontrollera offertsumma" Command="{Binding CheckOfferTotalCommand}" Style="{StaticResource SecondaryButton}" Margin="8,0,0,0"/>
-                    <DataGrid x:Name="SakvarorSpecificationGrid" Style="{StaticResource SakvaraReportGrid}" ItemsSource="{Binding FilteredSakvaror}" AutoGenerateColumns="False" IsReadOnly="False" CanUserAddRows="False" HeadersVisibility="Column" RowStyle="{StaticResource SakvaraRowStyle}" RowEditEnding="SakvarorGrid_RowEditEnding" Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid Grid.Row="0" ColumnSpan="3">
+                      <views:SakvaraActionsBar Grid.Row="0" SelectedArticles="{Binding SelectedItems, ElementName=SakvarorSpecificationGrid, Mode=OneWay}" TargetGrid="{Binding ElementName=SakvarorSpecificationGrid, Mode=OneWay}"/>
+                    </Grid>
+                    <DataGrid x:Name="SakvarorSpecificationGrid" Style="{StaticResource SakvaraReportGrid}" ItemsSource="{Binding SpecificationRows}" AutoGenerateColumns="False" IsReadOnly="False" CanUserAddRows="False" HeadersVisibility="Column" RowStyle="{StaticResource SakvaraRowStyle}" RowEditEnding="SakvarorGrid_RowEditEnding" SelectionMode="Extended" SelectionUnit="FullRow" Loaded="SakvarorGrid_Loaded" DataContextChanged="SakvarorGrid_DataContextChanged" Grid.Row="1" BeginningEdit="SakvarorGrid_BeginningEdit">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Grupp" Binding="{Binding Grupp}" Width="80" IsReadOnly="True"/>
                             <DataGridTextColumn Header="Beteckning-D1-D2" Binding="{Binding Beteckning}" Width="150" FontWeight="SemiBold" IsReadOnly="True"/>
                             <DataGridTextColumn Header="Antal" Binding="{Binding Antal, StringFormat={}{0:N0}}" Width="65" IsReadOnly="True" ElementStyle="{StaticResource RightAlignCell}"/>
                             <DataGridTextColumn Header="Produkt" Binding="{Binding Produkt}" Width="120" IsReadOnly="True"/>
-                            <DataGridTextColumn Header="Produktkod" Binding="{Binding Produktkod}" Width="110" IsReadOnly="True"/>
-                            <DataGridTextColumn Header="Leverantör" Binding="{Binding Leverantor}" Width="140" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Produktkod" Width="110" IsReadOnly="False" ElementStyle="{StaticResource RightAlignCell}">
+                                <DataGridTextColumn.Binding>
+                                    <Binding Path="Produktkod" Mode="TwoWay" UpdateSourceTrigger="LostFocus" ConverterCulture="sv-SE" ValidatesOnExceptions="True" StringFormat="N2"/>
+                                </DataGridTextColumn.Binding>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Leverantör" Width="140" IsReadOnly="False" ElementStyle="{StaticResource RightAlignCell}">
+                                <DataGridTextColumn.Binding>
+                                    <Binding Path="Leverantor" Mode="TwoWay" UpdateSourceTrigger="LostFocus" ConverterCulture="sv-SE" ValidatesOnExceptions="True" StringFormat="N2"/>
+                                </DataGridTextColumn.Binding>
+                            </DataGridTextColumn>
                             <DataGridTextColumn Header="Pris bto" Binding="{Binding PrisBto, StringFormat={}{0:N0}}" Width="95" IsReadOnly="True" ElementStyle="{StaticResource RightAlignCell}"/>
                             <DataGridTextColumn Header="%" Binding="{Binding RabattSats, StringFormat={}{0:N0}}" Width="50" IsReadOnly="True" ElementStyle="{StaticResource RightAlignCell}"/>
                             <DataGridTextColumn Header="Pris nto" Width="100" IsReadOnly="True" ElementStyle="{StaticResource RightAlignCell}">
@@ -133,12 +151,12 @@
                                     <Binding Path="PrisNto" Mode="TwoWay" UpdateSourceTrigger="PropertyChanged" ConverterCulture="sv-SE" ValidatesOnExceptions="True" StringFormat="N2"/>
                                 </DataGridTextColumn.Binding>
                             </DataGridTextColumn>
-                            <views:SakvaraPriceColumn Header="Offertpris" IsFinalPrice="False" Width="110" ElementStyle="{StaticResource RightAlignCell}" EditingElementStyle="{StaticResource RightAlignEdit}">
+                            <views:SakvaraPriceColumn Header="Offertpris" IsFinalPrice="False" Width="110" ElementStyle="{StaticResource CompactLubeQuotedPriceText}" EditingElementStyle="{StaticResource NumericCellEdit}">
                                 <views:SakvaraPriceColumn.Binding>
                                     <Binding Path="Offertpris" Mode="TwoWay" UpdateSourceTrigger="PropertyChanged" ConverterCulture="sv-SE" ValidatesOnExceptions="True" StringFormat="N2"/>
                                 </views:SakvaraPriceColumn.Binding>
                             </views:SakvaraPriceColumn>
-                            <views:SakvaraPriceColumn Header="Slutpris" IsFinalPrice="True" Width="110" ElementStyle="{StaticResource RightAlignCell}" EditingElementStyle="{StaticResource RightAlignEdit}">
+                            <views:SakvaraPriceColumn Header="Slutpris" IsFinalPrice="True" Width="110" ElementStyle="{StaticResource CompactLubeFinalPriceText}" EditingElementStyle="{StaticResource NumericCellEdit}">
                                 <views:SakvaraPriceColumn.Binding>
                                     <Binding Path="Slutpris" Mode="TwoWay" UpdateSourceTrigger="PropertyChanged" ConverterCulture="sv-SE" ValidatesOnExceptions="True" StringFormat="N2"/>
                                 </views:SakvaraPriceColumn.Binding>
@@ -166,7 +184,8 @@
     PrisNto="{Binding SumPrisNto}"
     Offertpris="{Binding SumOffertpris}"
     Slutpris="{Binding SumSlutpris}"
-    Differens="{Binding SumDifferens}"/>
+    Differens="{Binding SumDifferens}"
+    FontFamily="Arial" FontSize="11" FontWeight="Bold" Height="22"/>
                 </Grid>
             </TabItem>
 
@@ -221,8 +240,16 @@
                             <DataGridTextColumn Header="Beteckning-D1-D2" Binding="{Binding Beteckning}" Width="150" FontWeight="SemiBold" IsReadOnly="True"/>
                             <DataGridTextColumn Header="Antal" Binding="{Binding Antal, StringFormat={}{0:N0}}" Width="65" IsReadOnly="True" ElementStyle="{StaticResource RightAlignCell}"/>
                             <DataGridTextColumn Header="Produkt" Binding="{Binding Produkt}" Width="120" IsReadOnly="True"/>
-                            <DataGridTextColumn Header="Produktkod" Binding="{Binding Produktkod}" Width="110" IsReadOnly="True"/>
-                            <DataGridTextColumn Header="Leverantör" Binding="{Binding Leverantor}" Width="140" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Produktkod" Width="110" IsReadOnly="False" ElementStyle="{StaticResource RightAlignCell}">
+                                <DataGridTextColumn.Binding>
+                                    <Binding Path="Produktkod" Mode="TwoWay" UpdateSourceTrigger="LostFocus" ConverterCulture="sv-SE" ValidatesOnExceptions="True" StringFormat="N2"/>
+                                </DataGridTextColumn.Binding>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Leverantör" Width="140" IsReadOnly="False" ElementStyle="{StaticResource RightAlignCell}">
+                                <DataGridTextColumn.Binding>
+                                    <Binding Path="Leverantor" Mode="TwoWay" UpdateSourceTrigger="LostFocus" ConverterCulture="sv-SE" ValidatesOnExceptions="True" StringFormat="N2"/>
+                                </DataGridTextColumn.Binding>
+                            </DataGridTextColumn>
                             <DataGridTextColumn Header="Pris bto" Binding="{Binding PrisBto, StringFormat={}{0:N0}}" Width="95" IsReadOnly="True" ElementStyle="{StaticResource RightAlignCell}"/>
                             <DataGridTextColumn Header="%" Binding="{Binding RabattSats, StringFormat={}{0:N0}}" Width="50" IsReadOnly="True" ElementStyle="{StaticResource RightAlignCell}"/>
                             <DataGridTextColumn Header="Pris nto" Width="100" IsReadOnly="True" ElementStyle="{StaticResource RightAlignCell}">
@@ -230,12 +257,12 @@
                                     <Binding Path="PrisNto" Mode="TwoWay" UpdateSourceTrigger="PropertyChanged" ConverterCulture="sv-SE" ValidatesOnExceptions="True" StringFormat="N2"/>
                                 </DataGridTextColumn.Binding>
                             </DataGridTextColumn>
-                            <views:SakvaraPriceColumn Header="Offertpris" IsFinalPrice="False" Width="110" ElementStyle="{StaticResource RightAlignCell}" EditingElementStyle="{StaticResource RightAlignEdit}">
+                            <views:SakvaraPriceColumn Header="Offertpris" IsFinalPrice="False" Width="110" ElementStyle="{StaticResource CompactLubeQuotedPriceText}" EditingElementStyle="{StaticResource NumericCellEdit}">
                                 <views:SakvaraPriceColumn.Binding>
                                     <Binding Path="Offertpris" Mode="TwoWay" UpdateSourceTrigger="PropertyChanged" ConverterCulture="sv-SE" ValidatesOnExceptions="True" StringFormat="N2"/>
                                 </views:SakvaraPriceColumn.Binding>
                             </views:SakvaraPriceColumn>
-                            <views:SakvaraPriceColumn Header="Slutpris" IsFinalPrice="True" Width="110" ElementStyle="{StaticResource RightAlignCell}" EditingElementStyle="{StaticResource RightAlignEdit}">
+                            <views:SakvaraPriceColumn Header="Slutpris" IsFinalPrice="True" Width="110" ElementStyle="{StaticResource CompactLubeFinalPriceText}" EditingElementStyle="{StaticResource NumericCellEdit}">
                                 <views:SakvaraPriceColumn.Binding>
                                     <Binding Path="Slutpris" Mode="TwoWay" UpdateSourceTrigger="PropertyChanged" ConverterCulture="sv-SE" ValidatesOnExceptions="True" StringFormat="N2"/>
                                 </views:SakvaraPriceColumn.Binding>
@@ -285,8 +312,6 @@
                       Margin="0,4,2,0"
                       Padding="10,6"
                       Cursor="Hand"
-                      IsChecked="{Binding IsTabPickerOpen}"
-                      ToolTip="{DynamicResource ChooseTabsTooltip}"
                       Background="Transparent"
                       BorderThickness="0">
             <StackPanel Orientation="Horizontal">
@@ -294,11 +319,11 @@
                 <TextBlock Text="{DynamicResource ChooseTabs}" FontWeight="SemiBold" VerticalAlignment="Center"/>
             </StackPanel>
         </ToggleButton>
-        <Popup IsOpen="{Binding IsTabPickerOpen, Mode=TwoWay}"
-               PlacementTarget="{Binding ElementName=TabPickerButton}"
+        <Popup PlacementTarget="{Binding ElementName=TabPickerButton}"
                Placement="Bottom"
                StaysOpen="False"
-               AllowsTransparency="True">
+               IsOpen="{Binding IsChecked, ElementName=TabPickerButton, Mode=TwoWay}"
+               DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
             <Border Background="White"
                     BorderBrush="{StaticResource BorderBrush}"
                     BorderThickness="1"
@@ -314,7 +339,7 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <CheckBox Content="{Binding Title}"
-                                          IsChecked="{Binding IsVisible, Mode=TwoWay}"
+                                          IsChecked="{Binding IsVisible, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                           IsEnabled="{Binding CanHide}"
                                           Margin="0,5"/>
                             </DataTemplate>

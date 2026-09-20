@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -10,13 +10,12 @@
 
   <ItemGroup>
     <Content Include=".validation\ActualCostChecks.cs.txt" />
+    <Content Include=".validation\ArticleQuoteMembershipChecks.cs.txt" />
     <Content Include=".validation\AtaChecks.cs.txt" />
+    <Content Include=".validation\PackageQuoteChecks.cs.txt" />
     <Content Include=".validation\VentilationImportChecks.cs.txt" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Reference Include="System.Windows.Forms" />
-  </ItemGroup>
 
   <ItemGroup>
     <None Include=".github\copilot-instructions.md" />
@@ -27,6 +26,8 @@
     <None Include=".github\upgrades\scenarios\dotnet-version-upgrade\tasks\01-upgrade-project\progress-details.md" />
     <None Include=".validation\RunActualCostChecks.ps1" />
     <None Include=".validation\RunAtaChecks.ps1" />
+    <None Include=".validation\RunPackageQuoteChecks.ps1" />
+    <None Include=".validation\RunQuoteUiChecks.ps1" />
     <None Include=".validation\RunVentilationImportChecks.ps1" />
   </ItemGroup>
 

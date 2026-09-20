@@ -1,0 +1,112 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Scoped to Projektkalkyl: report-sized typography, modern theme colors. -->
+    <Style x:Key="CompactLubeText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Arial"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+    <Style x:Key="CompactLubeTextEdit" TargetType="TextBox">
+        <Setter Property="FontFamily" Value="Arial"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="MinHeight" Value="0"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+    <Style x:Key="CompactLubeNumericText" TargetType="TextBlock" BasedOn="{StaticResource NumericCellText}">
+        <Setter Property="FontFamily" Value="Arial"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="Margin" Value="0"/>
+    </Style>
+    <Style x:Key="CompactLubeNumericEdit" TargetType="TextBox" BasedOn="{StaticResource CompactLubeTextEdit}">
+        <Setter Property="HorizontalContentAlignment" Value="Right"/>
+    </Style>
+    <Style x:Key="CompactLubeQuotedPriceText" TargetType="TextBlock" BasedOn="{StaticResource CompactLubeNumericText}">
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsOffertprisFallback}" Value="True">
+                <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+    <Style x:Key="CompactLubeFinalPriceText" TargetType="TextBlock" BasedOn="{StaticResource CompactLubeNumericText}">
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsSlutprisFallback}" Value="True">
+                <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+            </DataTrigger>
+            <DataTrigger Binding="{Binding HasPackageQuote}" Value="True">
+                <Setter Property="TextAlignment" Value="Left"/>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+    <Style x:Key="CompactLubeCellButton" TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+        <Setter Property="FontFamily" Value="Arial"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="MinHeight" Value="0"/>
+        <Setter Property="Padding" Value="4,0"/>
+        <Setter Property="Margin" Value="0"/>
+    </Style>
+    <Style x:Key="CompactLubePrimaryCellButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+        <Setter Property="FontFamily" Value="Arial"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="MinHeight" Value="0"/>
+        <Setter Property="Padding" Value="4,0"/>
+        <Setter Property="Margin" Value="0"/>
+    </Style>
+    <Style x:Key="CompactLubeDangerCellButton" TargetType="Button" BasedOn="{StaticResource DangerButton}">
+        <Setter Property="FontFamily" Value="Arial"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="MinHeight" Value="0"/>
+        <Setter Property="Padding" Value="4,0"/>
+        <Setter Property="Margin" Value="0"/>
+    </Style>
+    <Style x:Key="CompactLubeGridRow" TargetType="DataGridRow" BasedOn="{StaticResource ModernGridRow}">
+        <Setter Property="FontFamily" Value="Arial"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="MinHeight" Value="19"/>
+    </Style>
+    <Style x:Key="CompactLubeGridCell" TargetType="DataGridCell" BasedOn="{StaticResource ModernGridCell}">
+        <Setter Property="FontFamily" Value="Arial"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="Padding" Value="6,2"/>
+        <Setter Property="MinHeight" Value="0"/>
+    </Style>
+    <Style x:Key="CompactLubeGridHeader" TargetType="DataGridColumnHeader" BasedOn="{StaticResource ModernGridHeader}">
+        <Setter Property="FontFamily" Value="Arial"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Padding" Value="6,2"/>
+        <Setter Property="MinHeight" Value="19"/>
+    </Style>
+    <Style x:Key="CompactLubeDataGrid" TargetType="DataGrid" BasedOn="{StaticResource ModernDataGrid}">
+        <Style.Resources>
+            <Style TargetType="TextBlock" BasedOn="{StaticResource CompactLubeText}"/>
+            <Style TargetType="TextBox" BasedOn="{StaticResource CompactLubeTextEdit}"/>
+            <Style TargetType="Button" BasedOn="{StaticResource CompactLubeCellButton}"/>
+            <Style TargetType="CheckBox">
+                <Setter Property="FontFamily" Value="Arial"/>
+                <Setter Property="FontSize" Value="11"/>
+                <Setter Property="MinHeight" Value="0"/>
+                <Setter Property="Margin" Value="0"/>
+                <Setter Property="Padding" Value="0"/>
+                <Setter Property="VerticalAlignment" Value="Center"/>
+                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            </Style>
+        </Style.Resources>
+        <Setter Property="FontFamily" Value="Arial"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontWeight" Value="Normal"/>
+        <Setter Property="RowHeight" Value="NaN"/>
+        <Setter Property="MinRowHeight" Value="19"/>
+        <Setter Property="ColumnHeaderHeight" Value="NaN"/>
+        <Setter Property="RowStyle" Value="{StaticResource CompactLubeGridRow}"/>
+        <Setter Property="CellStyle" Value="{StaticResource CompactLubeGridCell}"/>
+        <Setter Property="ColumnHeaderStyle" Value="{StaticResource CompactLubeGridHeader}"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+    </Style>
+    <Style TargetType="DataGrid" BasedOn="{StaticResource CompactLubeDataGrid}"/>
+</ResourceDictionary>

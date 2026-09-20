@@ -19,6 +19,7 @@ public class Project
     public decimal? AtaOwnCost { get; set; }
     public decimal? SalesPrice { get; set; }
     public decimal? BudgetedCost { get; set; }
+    public decimal? TargetTg { get; set; }
     public string DeliveryAddress { get; set; } = string.Empty;
     public string ContactPerson { get; set; } = string.Empty;
     public string InvoiceDetails { get; set; } = string.Empty;

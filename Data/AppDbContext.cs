@@ -89,6 +89,12 @@ public class AppDbContext : DbContext
         {
             entity.HasKey(x => x.Id);
             entity.Ignore(x => x.Differens);
+            entity.Ignore(x => x.EffectiveOffertpris);
+            entity.Ignore(x => x.EffectiveSlutpris);
+            entity.Ignore(x => x.IsOffertprisFallback);
+            entity.Ignore(x => x.IsSlutprisFallback);
+            entity.Ignore(x => x.HasPackageQuote);
+            entity.Ignore(x => x.PackageQuoteLabel);
             entity.HasOne(x => x.Project)
                   .WithMany(p => p.LubeSakvarorMangder)
                   .HasForeignKey(x => x.ProjectId)
@@ -98,6 +104,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<LubeSakvaraOffert>(entity =>
         {
             entity.HasKey(x => x.Id);
+            entity.Ignore(x => x.EffectiveAmount);
             entity.HasOne(x => x.Project)
                   .WithMany(p => p.LubeSakvarorOfferter)
                   .HasForeignKey(x => x.ProjectId)

@@ -264,5 +264,7 @@ internal static class AtaChecks
 		public void ShowError(string message, string title) => Errors.Add(message);
 		public string? OpenFileDialog(string filter, string title) => SelectedPath;
 		public string? SaveFileDialog(string defaultExt, string filter, string defaultFileName) => null;
+		public bool ResolveMissingDimensions(IReadOnlyList<BluebeamMarkupItem> items) => true;
+		public bool ReviewPurchaseImport(IReadOnlyList<BluebeamMarkupItem> items) => true;
 	}
 }

@@ -80,4 +80,9 @@ public partial class PurchaseTabView : UserControl
             _changingDrawingSelection = false;
         }
     }
+
+    private void TextBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+
+    }
 }

@@ -15,7 +15,9 @@ public sealed class DifferensRowBrushConverter : IValueConverter
         if (value is not double differens || differens == 0)
             return NeutralBrush;
 
-        return differens < 0 ? NegativeBrush : PositiveBrush;
+        var resourceKey = differens < 0 ? "CostSavingIndicatorBrush" : "CostIncreaseIndicatorBrush";
+        return System.Windows.Application.Current?.TryFindResource(resourceKey) as Brush
+            ?? (differens < 0 ? NegativeBrush : PositiveBrush);
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

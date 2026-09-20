@@ -69,6 +69,53 @@ public class LubeCalculationSummary : ObservableObject
 
     public event EventHandler? ActualCostsChanged;
 
+    // The specification owns this outcome; imported net amounts remain the baseline.
+    public bool ApplySpecificationOutcome(double finalAmount)
+    {
+        if (!double.IsFinite(finalAmount))
+            throw new ArgumentOutOfRangeException(nameof(finalAmount));
+
+        var delivery = ReportSections.FirstOrDefault(section => Normalize(section.Title) == "LEVERANSER");
+        if (delivery == null) return false;
+
+        var articles = delivery.Rows.Where(row => !row.IsHeader && !row.IsTotal
+            && Normalize(row.Label) == "SAKVAROR").ToArray();
+        LubeReportRow combined;
+        if (articles.Length == 1 && articles[0].List == "Specifikation")
+        {
+            combined = articles[0];
+        }
+        else
+        {
+            var baseline = articles.Sum(row => row.NetAmount
+                ?? (double.TryParse(row.Net, NumberStyles.Number, CultureInfo.InvariantCulture, out var net) ? net : 0));
+            combined = new LubeReportRow
+            {
+                Label = "Sakvaror",
+                List = "Specifikation",
+                NetAmount = baseline,
+                Net = baseline.ToString("N2", CultureInfo.InvariantCulture),
+                IsInput = false
+            };
+            var index = articles.Length > 0 ? delivery.Rows.IndexOf(articles[0])
+                : delivery.Rows.TakeWhile(row => row.IsHeader).Count();
+            foreach (var row in articles)
+            {
+                row.PropertyChanged -= OnActualCostChanged;
+                delivery.Rows.Remove(row);
+            }
+            delivery.Rows.Insert(index, combined);
+            InitializeActualCosts();
+            // Rows are plain lists, so refresh the report after consolidation.
+            ReportSections = ReportSections.ToList();
+            OnPropertyChanged(nameof(ReportSections));
+        }
+
+        combined.CanEditActualCost = false;
+        combined.ActualCost = finalAmount;
+        return true;
+    }
+
     [JsonIgnore]
     public double ActualProductionCost
     {
@@ -122,7 +169,8 @@ public class LubeCalculationSummary : ObservableObject
                 else if (!row.IsTotal && row.NetAmount.HasValue)
                     row.CostGroup = mode == "delivery" && key is "FRAKTER" or "MONTAGEMATERIAL" ? "deliveryExtra" : mode;
 
-                row.CanEditActualCost = row.CostGroup.Length > 0 && row.NetAmount.HasValue;
+                row.CanEditActualCost = row.ContributesActualCost
+                    && !(mode == "delivery" && key == "SAKVAROR" && row.List == "Specifikation");
                 row.PropertyChanged += OnActualCostChanged;
             }
         }
@@ -143,7 +191,7 @@ public class LubeCalculationSummary : ObservableObject
     private static string Normalize(string value) => string.Join(" ", value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)).ToUpperInvariant();
 
     private double Delta(params string[] groups) => ReportSections.SelectMany(s => s.Rows)
-        .Where(r => r.CanEditActualCost && groups.Contains(r.CostGroup))
+        .Where(r => r.ContributesActualCost && groups.Contains(r.CostGroup))
         .Sum(r => r.ActualCost.HasValue ? r.ActualCost.Value - r.NetAmount.GetValueOrDefault() : 0);
 
     private void OnActualCostChanged(object? sender, PropertyChangedEventArgs e)
@@ -158,7 +206,7 @@ public class LubeCalculationSummary : ObservableObject
         foreach (var row in ReportSections.SelectMany(s => s.Rows))
             row.ActualTotal = row.TotalGroups.Length > 0
                 ? row.NetAmount.GetValueOrDefault() + Delta(row.TotalGroups)
-                : row.CanEditActualCost ? row.ActualCost ?? row.NetAmount : null;
+                : row.ContributesActualCost ? row.ActualCost ?? row.NetAmount : null;
         OnPropertyChanged(nameof(ActualProductionCost));
     }
 }
@@ -211,4 +259,7 @@ public class LubeReportRow : ObservableObject
 
     internal string CostGroup { get; set; } = "";
     internal string[] TotalGroups { get; set; } = [];
+
+    // Automatic outcomes participate in totals even when they cannot be edited.
+    internal bool ContributesActualCost => CostGroup.Length > 0 && NetAmount.HasValue;
 }

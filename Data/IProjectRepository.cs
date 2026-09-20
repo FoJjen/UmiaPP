@@ -35,6 +35,12 @@ public interface IProjectRepository
 
     Task SaveSakvaraSpecificationRowAsync(LubeSakvaraMangd item);
 
+    Task SavePackageQuoteAsync(LubeSakvaraOffert quote, IReadOnlyList<int> articleIds);
+
+    Task DeletePackageQuoteAsync(int projectId, int quoteId);
+
+    Task SetArticleQuoteLinksAsync(int projectId, IReadOnlyList<int> articleIds, int? quoteId);
+
     Task SaveLubeSummaryAsync(int projectId, string summaryJson);
 
     // Bluebeam markups

@@ -1,0 +1,71 @@
+<Window x:Class="UmiaPP.Views.LinkQuoteDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Koppla till offert" Width="640" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        Background="{StaticResource BackgroundBrush}" Language="sv-SE">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="180"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <TextBlock Text="Koppla markerade artiklar till en paketoffert" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8"/>
+        <TextBlock Grid.Row="0" Margin="0,28,0,16" TextWrapping="Wrap"
+                   Text="Paketbeloppet räknas en gång. Kopplade artiklar visar Ingår i offert och adderas inte var för sig. Ursprungligt Pris nto behålls som jämförelse."
+                   Foreground="{StaticResource TextSecondaryBrush}"/>
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <StackPanel Margin="0,0,8,10">
+                <TextBlock Text="Leverantör" Margin="0,0,0,4"/>
+                <TextBox Text="{Binding Supplier, UpdateSourceTrigger=PropertyChanged}"/>
+            </StackPanel>
+            <StackPanel Grid.Column="1" Margin="8,0,0,10">
+                <TextBlock Text="Offertnummer" Margin="0,0,0,4"/>
+                <TextBox Text="{Binding QuoteNumber, UpdateSourceTrigger=PropertyChanged}"/>
+            </StackPanel>
+            <StackPanel Grid.Row="1" Margin="0,0,8,10">
+                <TextBlock Text="Datum" Margin="0,0,0,4"/>
+                <DatePicker SelectedDate="{Binding QuoteDate}" Height="36"/>
+            </StackPanel>
+            <StackPanel Grid.Row="1" Grid.Column="1" Margin="8,0,0,10">
+                <TextBlock Text="Offererat belopp (kr)" Margin="0,0,0,4"/>
+                <TextBox Text="{Binding QuotedAmountInput, UpdateSourceTrigger=PropertyChanged}"/>
+            </StackPanel>
+            <StackPanel Grid.Row="2" Margin="0,0,8,10">
+                <TextBlock Text="Slutpris (kr), valfritt" Margin="0,0,0,4"/>
+                <TextBox Text="{Binding FinalAmountInput, UpdateSourceTrigger=PropertyChanged}"/>
+            </StackPanel>
+            <StackPanel Grid.Row="2" Grid.Column="1" Margin="8,0,0,10">
+                <TextBlock Text="PDF" Margin="0,0,0,4"/>
+                <DockPanel>
+                    <Button Content="..." Command="{Binding BrowseCommand}" Style="{StaticResource SecondaryButton}" DockPanel.Dock="Right" Margin="6,0,0,0"/>
+                    <TextBox Text="{Binding FilePath, UpdateSourceTrigger=PropertyChanged}"/>
+                </DockPanel>
+            </StackPanel>
+            <TextBlock Grid.Row="3" Grid.ColumnSpan="2" Text="{Binding ErrorMessage}" Foreground="#B00020" TextWrapping="Wrap"/>
+        </Grid>
+        <DataGrid Grid.Row="2" Margin="0,8,0,0" ItemsSource="{Binding Articles}" IsReadOnly="True" AutoGenerateColumns="False" CanUserAddRows="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Beteckning" Binding="{Binding Beteckning}" Width="*"/>
+                <DataGridTextColumn Header="Produkt" Binding="{Binding Produkt}" Width="*"/>
+                <DataGridTextColumn Header="Pris nto" Binding="{Binding PrisNto, StringFormat=N2}" Width="90"/>
+                <DataGridTextColumn Header="Offertpris" Binding="{Binding Offertpris, StringFormat=N2}" Width="90"/>
+            </DataGrid.Columns>
+        </DataGrid>
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button Content="Avbryt" Command="{Binding CancelCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,8,0"/>
+            <Button Content="Spara offert" Command="{Binding SaveCommand}" Style="{StaticResource PrimaryButton}"/>
+        </StackPanel>
+    </Grid>
+</Window>

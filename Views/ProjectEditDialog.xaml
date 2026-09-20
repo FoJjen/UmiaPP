@@ -22,6 +22,9 @@
                 <TextBlock Text="Försäljningspris (kr)" Margin="0,0,0,5"/>
                 <TextBox Text="{Binding SalesPriceInput, UpdateSourceTrigger=PropertyChanged}"/>
                 <TextBlock Text="Använd komma som decimaltecken. Lämna tomt om pris saknas." Margin="0,4,0,0" Foreground="{StaticResource TextSecondaryBrush}"/>
+                <TextBlock Text="Målprognos TG (%)" Margin="0,12,0,5"/>
+                <TextBox Text="{Binding TargetTgInput, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Målprognos TG (%)"/>
+                <TextBlock Text="Ange 0–100, till exempel 15,5. Lämna tomt om målprognos saknas." TextWrapping="Wrap" Margin="0,4,0,0" Foreground="{StaticResource TextSecondaryBrush}"/>
             </StackPanel>
             <StackPanel Grid.Row="5" Grid.ColumnSpan="2" Margin="0,0,0,14"><TextBlock Text="Leveransadress" Margin="0,0,0,5"/><TextBox Height="56" AcceptsReturn="True" TextWrapping="Wrap" VerticalContentAlignment="Top" Text="{Binding DeliveryAddress, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>
             <StackPanel Grid.Row="6" Margin="0,0,12,14"><TextBlock Text="Kontaktperson" Margin="0,0,0,5"/><TextBox Text="{Binding ContactPerson, UpdateSourceTrigger=PropertyChanged}"/></StackPanel>

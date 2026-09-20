@@ -48,8 +48,36 @@ public partial class LubeSakvaraMangd : ObservableObject
 
     public string Grupp { get; set; } = string.Empty;
     public string Produkt { get; set; } = string.Empty;
-    public string Produktkod { get; set; } = string.Empty;
-    public string Leverantor { get; set; } = string.Empty;
+    private string _produktkod = string.Empty;
+    public string Produktkod
+    {
+        get => _produktkod;
+        set { if (SetProperty(ref _produktkod, value)) NotifyArticleIdentityChanged(); }
+    }
+    private string _leverantor = string.Empty;
+    public string Leverantor
+    {
+        get => _leverantor;
+        set { if (SetProperty(ref _leverantor, value)) NotifyArticleIdentityChanged(); }
+    }
+
+    public bool HasOriginalArticleIdentity { get; set; }
+    public string OriginalProduktkod { get; set; } = string.Empty;
+    public string OriginalLeverantor { get; set; } = string.Empty;
+
+    [NotMapped]
+    public bool IsProduktkodChanged => HasOriginalArticleIdentity && Produktkod != OriginalProduktkod;
+    [NotMapped]
+    public bool IsLeverantorChanged => HasOriginalArticleIdentity && Leverantor != OriginalLeverantor;
+
+    public void NotifyArticleIdentityChanged()
+    {
+        OnPropertyChanged(nameof(IsProduktkodChanged));
+        OnPropertyChanged(nameof(IsLeverantorChanged));
+        OnPropertyChanged(nameof(OriginalProduktkod));
+        OnPropertyChanged(nameof(OriginalLeverantor));
+    }
+
     public double PrisBto { get; set; }
     public double RabattSats { get; set; }
     private double _prisNto;
@@ -74,17 +102,44 @@ public partial class LubeSakvaraMangd : ObservableObject
     [ObservableProperty]
     private string _anteckningar = string.Empty;
 
-    [NotMapped]
-    public double EffectiveOffertpris => Offertpris != 0 ? Offertpris : PrisNto;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasPackageQuote))]
+    [NotifyPropertyChangedFor(nameof(PackageQuoteLabel))]
+    [NotifyPropertyChangedFor(nameof(EffectiveOffertpris))]
+    [NotifyPropertyChangedFor(nameof(EffectiveSlutpris))]
+    [NotifyPropertyChangedFor(nameof(IsOffertprisFallback))]
+    [NotifyPropertyChangedFor(nameof(IsSlutprisFallback))]
+    [NotifyPropertyChangedFor(nameof(Differens))]
+    private int? _packageQuoteId;
 
     [NotMapped]
-    public double EffectiveSlutpris => Slutpris != 0 ? Slutpris : EffectiveOffertpris;
+    public bool HasPackageQuote => PackageQuoteId is > 0;
 
     [NotMapped]
-    public bool IsOffertprisFallback => Offertpris == 0;
+    public string PackageQuoteLabel { get; set; } = string.Empty;
+
+    // Display-only rows must never be persisted as articles or included in article totals.
+    [NotMapped]
+    public bool IsQuoteSummaryRow { get; init; }
+
+    // Separate from PackageQuoteId: a summary displays its own amount rather
+    // than behaving like an article whose price is included in a package.
+    [NotMapped]
+    public int? SummaryQuoteId { get; init; }
 
     [NotMapped]
-    public bool IsSlutprisFallback => Slutpris == 0;
+    public double EffectiveOffertpris => IsQuoteSummaryRow ? Offertpris
+        : HasPackageQuote ? 0 : Offertpris != 0 ? Offertpris : PrisNto;
+
+    [NotMapped]
+    public double EffectiveSlutpris => IsQuoteSummaryRow ? Slutpris
+        : HasPackageQuote ? 0 : Slutpris != 0 ? Slutpris : EffectiveOffertpris;
+
+    [NotMapped]
+    public bool IsOffertprisFallback => !IsQuoteSummaryRow && !HasPackageQuote && Offertpris == 0;
+
+    [NotMapped]
+    public bool IsSlutprisFallback => !IsQuoteSummaryRow && !HasPackageQuote && Slutpris == 0;
 
     [NotMapped]
     public double Differens => EffectiveSlutpris - EffectiveOffertpris;
@@ -98,10 +153,14 @@ public partial class LubeSakvaraMangd : ObservableObject
         OnPropertyChanged(nameof(IsOffertprisFallback));
         OnPropertyChanged(nameof(IsSlutprisFallback));
         OnPropertyChanged(nameof(Differens));
+        OnPropertyChanged(nameof(HasPackageQuote));
+        OnPropertyChanged(nameof(PackageQuoteLabel));
     }
 
     partial void OnOffertprisChanged(double value) => NotifyEffectivePricesChanged();
     partial void OnSlutprisChanged(double value) => NotifyEffectivePricesChanged();
+
+    public void NotifyQuoteChanged() => NotifyEffectivePricesChanged();
 }
 
 public class LubeSakvaraOffert
@@ -113,6 +172,13 @@ public class LubeSakvaraOffert
     public double OffereratPris { get; set; }
     public string Valuta { get; set; } = "SEK";
     public string? Kommentar { get; set; }
+    public DateTime QuoteDate { get; set; } = DateTime.Today;
+    public double FinalAmount { get; set; }
+    public string FilePath { get; set; } = string.Empty;
+    public bool IsPackageQuote { get; set; }
+
+    [NotMapped]
+    public double EffectiveAmount => FinalAmount != 0 ? FinalAmount : OffereratPris;
 
     public Project? Project { get; set; }
 }

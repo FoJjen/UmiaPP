@@ -70,6 +70,11 @@
     <sys:String x:Key="ChooseTabs">Tabs</sys:String>
     <sys:String x:Key="ChooseTabsTitle">Visible tabs</sys:String>
     <sys:String x:Key="ChooseTabsTooltip">Choose which tabs to display</sys:String>
+    <sys:String x:Key="ChooseColumns">Columns</sys:String>
+    <sys:String x:Key="ChooseColumnsTooltip">Choose which columns to display</sys:String>
+    <sys:String x:Key="ShowAllColumns">Show all columns</sys:String>
+    <sys:String x:Key="KeepOneColumnVisible">At least one column must remain visible.</sys:String>
+    <sys:String x:Key="ColumnLabelFormat">Column {0}</sys:String>
 
     <!-- Purchase Tab -->
     <sys:String x:Key="SectionDrawings">Part 1: Drawing List</sys:String>

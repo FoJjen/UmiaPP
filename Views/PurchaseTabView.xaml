@@ -25,7 +25,7 @@
         </Grid.RowDefinitions>
         <WrapPanel Margin="0,0,0,10">
             <Button Content="Importera Bluebeam XML" Command="{Binding ImportDrawingListsCommand}" Style="{StaticResource AccentButton}" Margin="0,0,12,0"/>
-            <TextBox Width="230" Text="{Binding NewListName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Namn eller ritningsnummer för egen komponentlista" Margin="0,0,8,0"/>
+            <TextBox Width="230" Text="{Binding NewListName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Namn eller ritningsnummer för egen komponentlista" Margin="0,0,8,0" TextChanged="TextBox_TextChanged"/>
             <Button Content="Skapa egen komponentlista" Command="{Binding CreateManualListCommand}" Style="{StaticResource SecondaryButton}"/>
         </WrapPanel>
         <StackPanel Grid.Row="1" Margin="0,0,0,8">
@@ -38,9 +38,17 @@
                 <DataGridTextColumn Header="Ritning / Lista" Binding="{Binding DrawingNumber}" Width="170"/>
                 <DataGridTextColumn Header="Titel" Binding="{Binding SheetTitle}" Width="*"/>
                 <DataGridTextColumn Header="Revision" Binding="{Binding Revision}" Width="75"/>
-                <DataGridTextColumn Header="Importkälla" Binding="{Binding PurchaseImportSource}" Width="180"/>
+                <DataGridTemplateColumn Header="Importkälla" Width="180">
+                    <DataGridTemplateColumn.CellTemplate><DataTemplate>
+                        <TextBlock Text="{Binding PurchaseImportSource, Converter={StaticResource FileNameDisplayConverter}}" ToolTip="{Binding PurchaseImportSource}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                    </DataTemplate></DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
                 <DataGridTextColumn Header="Datum" Binding="{Binding Date, StringFormat=yyyy-MM-dd}" Width="100"/>
-                <DataGridTextColumn Header="Kopplad PDF" Binding="{Binding FilePath}" Width="*"/>
+                <DataGridTemplateColumn Header="Kopplad PDF" Width="*">
+                    <DataGridTemplateColumn.CellTemplate><DataTemplate>
+                        <TextBlock Text="{Binding FilePath, Converter={StaticResource FileNameDisplayConverter}}" ToolTip="{Binding FilePath}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                    </DataTemplate></DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
     <DataGridTemplateColumn Header="Åtgärder" Width="130">
      <DataGridTemplateColumn.CellTemplate>
       <DataTemplate>
@@ -70,18 +78,18 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <DataGrid x:Name="ArticlesGrid" ItemsSource="{Binding ArticleView}" SelectedItem="{Binding SelectedArticle}" RowEditEnding="Articles_RowEditEnding" BeginningEdit="Articles_BeginningEdit" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" FontFamily="Arial" FontSize="11" MinHeight="120" SelectionChanged="DataGrid_SelectionChanged">
+            <DataGrid x:Name="ArticlesGrid" ItemsSource="{Binding ArticleView}" SelectedItem="{Binding SelectedArticle}" RowEditEnding="Articles_RowEditEnding" BeginningEdit="Articles_BeginningEdit" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" MinHeight="120" SelectionChanged="DataGrid_SelectionChanged">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Kategori" Binding="{Binding Category, Mode=TwoWay}" Width="Auto"/>
                     <DataGridTextColumn Header="Typ / Artikel" Binding="{Binding Type, Mode=TwoWay}" Width="Auto"/>
                     <DataGridTextColumn Header="Dimension / Beteckning" Binding="{Binding Dimension, Mode=TwoWay}" Width="Auto"/>
-                    <DataGridTextColumn Header="Mängd" Width="Auto">
+                    <DataGridTextColumn Header="Mängd" Width="Auto" ElementStyle="{StaticResource NumericCellText}" EditingElementStyle="{StaticResource NumericCellEdit}">
                         <DataGridTextColumn.Binding>
                             <Binding Path="Quantity" Mode="TwoWay" ConverterCulture="sv-SE" StringFormat="N2" ValidatesOnExceptions="True"/>
                         </DataGridTextColumn.Binding>
                     </DataGridTextColumn>
                     <DataGridTextColumn Header="Enhet" Binding="{Binding Unit, Mode=TwoWay}" Width="Auto"/>
-                    <DataGridTextColumn Header="Inköpsantal" Binding="{Binding PurchaseQuantity, Mode=OneWay, StringFormat=N2}" IsReadOnly="True" Width="Auto"/>
+                    <DataGridTextColumn Header="Inköpsantal" Binding="{Binding PurchaseQuantity, Mode=OneWay, StringFormat=N2}" IsReadOnly="True" Width="Auto" ElementStyle="{StaticResource NumericCellText}" EditingElementStyle="{StaticResource NumericCellEdit}"/>
                     <DataGridTextColumn Header="Inköpsenhet" Binding="{Binding PurchaseUnit, Mode=OneWay}" IsReadOnly="True" Width="Auto"/>
                     <DataGridTextColumn Header="Produktkod" Binding="{Binding ProductCode, Mode=TwoWay}" Width="Auto"/>
                     <DataGridTextColumn Header="Leverantör" Binding="{Binding Supplier, Mode=TwoWay}" Width="Auto"/>
@@ -90,7 +98,7 @@
             <Expander Grid.Column="1" Header="PDF" ExpandDirection="Left" IsExpanded="False" Margin="10,0,0,0">
                 <Grid Width="480">
                     <TextBlock Text="Koppla en PDF till vald ritning eller lista. Automatisk artikelutläsning från PDF ingår inte ännu." TextWrapping="Wrap" Margin="12" VerticalAlignment="Center"/>
-                    <wv2:WebView2 Source="{Binding LoadedPdfUri}" Visibility="{Binding HasLoadedPdf, Converter={StaticResource BoolToVis}}"/>
+                    <wv2:WebView2 Source="{Binding LoadedPdfUri, Mode=OneWay, TargetNullValue='about:blank', FallbackValue='about:blank'}" Visibility="{Binding HasLoadedPdf, Converter={StaticResource BoolToVis}}"/>
                 </Grid>
             </Expander>
         </Grid>

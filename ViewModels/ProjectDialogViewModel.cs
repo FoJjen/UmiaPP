@@ -44,6 +44,9 @@ public partial class ProjectDialogViewModel : ObservableObject
     private string _salesPriceInput = string.Empty;
 
     [ObservableProperty]
+    private string _targetTgInput = string.Empty;
+
+    [ObservableProperty]
     private string _deliveryAddress = string.Empty;
 
     [ObservableProperty]
@@ -51,6 +54,19 @@ public partial class ProjectDialogViewModel : ObservableObject
 
     [ObservableProperty]
     private string _invoiceDetails = string.Empty;
+
+    private bool TryTargetTg(out decimal? value)
+    {
+        value = null;
+        if (string.IsNullOrWhiteSpace(TargetTgInput)) return true;
+        var text = TargetTgInput.Trim().Replace("\u00a0", "").Replace("\u202f", "").Replace(" ", "");
+        if (!decimal.TryParse(text,
+                System.Globalization.NumberStyles.AllowDecimalPoint,
+                System.Globalization.CultureInfo.GetCultureInfo("sv-SE"), out var amount)
+            || amount < 0 || amount > 100) return false;
+        value = amount;
+        return true;
+    }
 
     private bool TrySalesPrice(out decimal? value)
     {
@@ -92,6 +108,7 @@ public partial class ProjectDialogViewModel : ObservableObject
             CreatedDate = existing.CreatedDate;
             Description = existing.Description ?? string.Empty;
             SalesPriceInput = existing.SalesPrice?.ToString(System.Globalization.CultureInfo.GetCultureInfo("sv-SE")) ?? string.Empty;
+            TargetTgInput = existing.TargetTg?.ToString(System.Globalization.CultureInfo.GetCultureInfo("sv-SE")) ?? string.Empty;
             DeliveryAddress = existing.DeliveryAddress ?? string.Empty;
             ContactPerson = existing.ContactPerson ?? string.Empty;
             InvoiceDetails = existing.InvoiceDetails ?? string.Empty;
@@ -118,6 +135,12 @@ public partial class ProjectDialogViewModel : ObservableObject
             return;
         }
 
+        if (!TryTargetTg(out _))
+        {
+            MessageBox.Show("Ange målprognos TG mellan 0 och 100 %. Använd komma som decimaltecken, eller lämna tomt om målprognos saknas.", "Validering", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
         IsConfirmed = true;
         CloseAction?.Invoke();
     }
@@ -133,7 +156,10 @@ public partial class ProjectDialogViewModel : ObservableObject
     {
         if (!TrySalesPrice(out var salesPrice))
             throw new InvalidOperationException("Ogiltigt försäljningspris.");
+        if (!TryTargetTg(out var targetTg))
+            throw new InvalidOperationException("Ogiltig målprognos TG.");
         project.SalesPrice = salesPrice;
+        project.TargetTg = targetTg;
         project.Name = Name.Trim();
         project.ProjectNumber = ProjectNumber.Trim();
         project.Client = Client.Trim();

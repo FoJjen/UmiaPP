@@ -5,18 +5,18 @@
     <Color x:Key="PrimaryColor">#124E78</Color>
     <Color x:Key="PrimaryHoverColor">#0E3F61</Color>
     <Color x:Key="PrimaryDarkColor">#0A2D46</Color>
-    <Color x:Key="AccentColor">#F26419</Color>
-    <Color x:Key="AccentHoverColor">#D85513</Color>
+    <Color x:Key="AccentColor">#124E78</Color>
+    <Color x:Key="AccentHoverColor">#0E3F61</Color>
 
     <Color x:Key="BackgroundColor">#F4F6F9</Color>
     <Color x:Key="SurfaceColor">#FFFFFF</Color>
-    <Color x:Key="BorderColor">#DDE2E7</Color>
+    <Color x:Key="BorderColor">#E5E7EB</Color>
     <Color x:Key="TextPrimaryColor">#202428</Color>
     <Color x:Key="TextSecondaryColor">#68707D</Color>
 
-    <Color x:Key="SuccessColor">#2ECC71</Color>
-    <Color x:Key="DangerColor">#E74C3C</Color>
-    <Color x:Key="DangerHoverColor">#C0392B</Color>
+    <Color x:Key="SuccessColor">#15803D</Color>
+    <Color x:Key="DangerColor">#B91C1C</Color>
+    <Color x:Key="DangerHoverColor">#991B1B</Color>
 
     <!-- Brushes -->
     <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}"/>
@@ -33,4 +33,11 @@
     <SolidColorBrush x:Key="DangerHoverBrush" Color="{StaticResource DangerHoverColor}"/>
     <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}"/>
 
+    <SolidColorBrush x:Key="HeaderBackgroundBrush" Color="#F3F4F6"/>
+    <SolidColorBrush x:Key="RowHoverBrush" Color="#F3F4F6"/>
+    <SolidColorBrush x:Key="SelectionBrush" Color="#EBF5FF"/>
+    <SolidColorBrush x:Key="SelectionTextBrush" Color="#0F172A"/>
+    <SolidColorBrush x:Key="DangerTintBrush" Color="#FEF2F2"/>
+    <SolidColorBrush x:Key="QuoteSummaryBrush" Color="#FFFBEB"/>
+    <SolidColorBrush x:Key="FocusBrush" Color="#2563EB"/>
 </ResourceDictionary>

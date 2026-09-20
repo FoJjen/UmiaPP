@@ -11,6 +11,8 @@ using ClosedXML.Excel;
 using Microsoft.Data.Sqlite;
 using UmiaPP.Data;
 using UmiaPP.Models;
+using UmiaPP.Services;
+using UmiaPP.ViewModels;
 using UmiaPP.Views;
 
 internal static class ActualCostChecks
@@ -22,6 +24,8 @@ internal static class ActualCostChecks
 	{
 		CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("sv-SE");
 		CheckCalculations();
+		CheckSpecificationOutcome();
+		CheckTargetTg();
 		CheckParser();
 		CheckPersistence();
 		CheckView();
@@ -108,6 +112,136 @@ internal static class ActualCostChecks
 		legacy.ReportSections[2].Rows[1].Net = "1,234";
 		legacy.InitializeActualCosts();
 		Equal(1234, legacy.ReportSections[2].Rows[1].ActualTotal, "Legacy invariant-formatted JSON is supported");
+	}
+
+	private static void CheckSpecificationOutcome()
+	{
+		var summary = Sample();
+		Check(summary.ApplySpecificationOutcome(6587625), "Specification outcome can be applied");
+		var rows = summary.ReportSections.SelectMany(section => section.Rows)
+			.Where(row => row.Label == "Sakvaror").ToArray();
+		Check(rows.Length == 1, "Sakvaror is consolidated into one report row");
+		var combined = rows.Single();
+		Equal(800.5, combined.NetAmount, "Combined imported baseline is retained");
+		Equal(6587625, combined.ActualTotal, "Sakvaror outcome equals specification final total");
+		Equal(6589235, summary.ActualProductionCost, "Production cost replaces, not adds, old Sakvaror costs");
+		Equal(2410.5, summary.TotalProduktionskostnad, "Imported production baseline stays unchanged");
+		Check(!combined.CanEditActualCost, "Specification-owned outcome cannot be edited manually");
+		summary.ApplySpecificationOutcome(6587625);
+		Equal(6589235, summary.ActualProductionCost, "Repeated synchronization does not double count");
+		var notifications = 0;
+		summary.ActualCostsChanged += (_, _) => notifications++;
+		summary.ApplySpecificationOutcome(1500);
+		Equal(3110, summary.ActualProductionCost, "Later specification price changes update production cost");
+		Check(notifications > 0, "Specification changes notify outcome consumers");
+		var reloaded = JsonSerializer.Deserialize<LubeCalculationSummary>(JsonSerializer.Serialize(summary))!;
+		reloaded.InitializeActualCosts();
+		Equal(3110, reloaded.ActualProductionCost, "Combined outcome survives reload");
+		Check(!reloaded.ReportSections.SelectMany(section => section.Rows)
+			.Single(row => row.Label == "Sakvaror").CanEditActualCost, "Combined outcome stays read-only after reload");
+		reloaded.ApplySpecificationOutcome(0);
+		Equal(1610, reloaded.ActualProductionCost, "Removing all specification costs produces an explicit zero");
+		Equal(0, reloaded.ReportSections.SelectMany(section => section.Rows)
+			.Single(row => row.Label == "Sakvaror").ActualTotal, "Zero does not fall back to imported costs");
+		Check(!new LubeCalculationSummary().ApplySpecificationOutcome(100), "Empty reports are handled safely");
+
+		var screenshot = new LubeCalculationSummary
+		{
+			ReportSections =
+			[
+				new() { Title = "LEVERANSER", Rows =
+				[
+					Row("Sakvaror", 287659), Row("Sakvaror", 1281850),
+					Row("RK Galvplåt", 54420), Row("CK Galvplåt", 185142), Row("CK Rostfritt", 99229),
+					Row("SUMMA FÖRE JUSTERING", 1908300, true),
+					Row("Frakter", 76332), Row("Montagematerial", 95415),
+					Row("SUMMA LEVERANS", 2080047, true)
+				] },
+				new() { Rows = [Row("Leverans", 2080047), Row("TOTAL PRODUKTIONSKOSTNAD", 2575097, true)] }
+			]
+		};
+		screenshot.InitializeActualCosts();
+		screenshot.ApplySpecificationOutcome(1440510);
+		var screenshotRows = screenshot.ReportSections.SelectMany(section => section.Rows).ToArray();
+		Equal(1440510, screenshotRows.Single(row => row.Label == "Sakvaror").ActualTotal,
+			"Reported case: read-only Sakvaror shows its final cost, not a blank");
+		Equal(1779301, screenshotRows.Single(row => row.Label == "SUMMA FÖRE JUSTERING").ActualTotal,
+			"Reported case: delivery subtotal includes the -128999 specification delta");
+		Equal(1951048, screenshotRows.Single(row => row.Label == "SUMMA LEVERANS").ActualTotal,
+			"Reported case: delivery outcome updates without changing freight and materials");
+		Equal(1951048, screenshotRows.Single(row => row.Label == "Leverans").ActualTotal,
+			"Reported case: final delivery rollup follows the automatic outcome");
+		Equal(2446098, screenshot.ActualProductionCost,
+			"Reported case: production cost includes the automatic outcome");
+		Check(!screenshotRows.Single(row => row.Label == "Sakvaror").CanEditActualCost,
+			"Reported case: fixing the calculation does not make Sakvaror editable");
+	}
+
+	private static void CheckTargetTg()
+	{
+		var project = new Project { Name = "Target test", ProjectNumber = "TARGET", TargetTg = 12.5m };
+		var editor = new ProjectDialogViewModel(new LocalizationService(), project);
+		Check(editor.TargetTgInput == "12,5", "Project editor loads target using Swedish decimals");
+		editor.TargetTgInput = "15,5";
+		editor.ApplyToProject(project);
+		Check(project.TargetTg == 15.5m, "Project editor applies target TG");
+		foreach (var input in new[] { "-1", "100,1", "NaN", "Infinity", "abc", "15.5" })
+		{
+			editor.TargetTgInput = input;
+			var rejected = false;
+			try { editor.ApplyToProject(project); }
+			catch (InvalidOperationException) { rejected = true; }
+			Check(rejected && project.TargetTg == 15.5m, "Invalid target does not mutate the project: " + input);
+		}
+		foreach (var input in new[] { "0", "100" })
+		{
+			editor.TargetTgInput = input;
+			editor.ApplyToProject(project);
+			Check(project.TargetTg == decimal.Parse(input), "Target accepts boundary " + input);
+		}
+		editor.TargetTgInput = " ";
+		editor.ApplyToProject(project);
+		Check(project.TargetTg == null, "Blank target clears the forecast");
+
+		var path = Path.Combine(Path.GetTempPath(), $"umia-target-{Guid.NewGuid():N}.db");
+		try
+		{
+			using (var connection = new SqliteConnection($"Data Source={path}"))
+			{
+				connection.Open();
+				using var command = connection.CreateCommand();
+				command.CommandText = "CREATE TABLE Projects (Id INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT, ProjectNumber TEXT)";
+				command.ExecuteNonQuery();
+			}
+			using (var context = new AppDbContext(path))
+				SqliteSchemaSynchronizer.SynchronizeAsync(context).GetAwaiter().GetResult();
+			var repository = new ProjectRepository(() => new AppDbContext(path));
+			project.TargetTg = 15.5m;
+			project = repository.CreateAsync(project).GetAwaiter().GetResult();
+			var loaded = repository.GetByIdAsync(project.Id).GetAwaiter().GetResult()!;
+			Check(loaded.TargetTg == 15.5m, "Target is stored in an upgraded SQLite database");
+			loaded.TargetTg = 20m;
+			repository.UpdateAsync(loaded).GetAwaiter().GetResult();
+			loaded = repository.GetByIdAsync(project.Id).GetAwaiter().GetResult()!;
+			Check(loaded.TargetTg == 20m, "Editing an existing project persists its target");
+			var overview = new OverviewTabViewModel(loaded,
+				new LocalDataService(repository, () => new AppDbContext(path)), new DialogService());
+			overview.CurrentTg = 12.5m;
+			Check(overview.TargetTgVariance == -7.5m, "Target variance is expressed in percentage points");
+			Check(!overview.MarginGaugeDescription.Contains("Ingen målprognos"), "TG card recognizes a saved target");
+			loaded.TargetTg = null;
+			repository.UpdateAsync(loaded).GetAwaiter().GetResult();
+			loaded = repository.GetByIdAsync(project.Id).GetAwaiter().GetResult()!;
+			Check(loaded.TargetTg == null, "Clearing an existing target persists null");
+			overview.UpdateProject(loaded);
+			Check(overview.TargetTg == null && overview.TargetTgVariance == null, "Overview clears target and variance after project refresh");
+		}
+		finally
+		{
+			SqliteConnection.ClearAllPools();
+			foreach (var suffix in new[] { "", "-wal", "-shm" })
+				if (File.Exists(path + suffix)) File.Delete(path + suffix);
+		}
 	}
 
 	private static void CheckParser()

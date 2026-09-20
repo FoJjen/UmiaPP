@@ -16,12 +16,27 @@ public sealed class SakvarorTotalsFooter : FrameworkElement
     public static readonly DependencyProperty OffertprisProperty = TotalProperty(nameof(Offertpris));
     public static readonly DependencyProperty SlutprisProperty = TotalProperty(nameof(Slutpris));
     public static readonly DependencyProperty DifferensProperty = TotalProperty(nameof(Differens));
+    public static readonly DependencyProperty SurfaceBrushProperty = BrushProperty(nameof(SurfaceBrush), Brushes.White);
+    public static readonly DependencyProperty TextBrushProperty = BrushProperty(nameof(TextBrush), Brushes.Black);
+    public static readonly DependencyProperty OutlineBrushProperty = BrushProperty(nameof(OutlineBrush), Brushes.LightGray);
+    public static readonly DependencyProperty FontSizeProperty = System.Windows.Documents.TextElement.FontSizeProperty.AddOwner(
+        typeof(SakvarorTotalsFooter), new FrameworkPropertyMetadata(13d, FrameworkPropertyMetadataOptions.AffectsRender));
+    public static readonly DependencyProperty FontFamilyProperty = System.Windows.Documents.TextElement.FontFamilyProperty.AddOwner(
+        typeof(SakvarorTotalsFooter), new FrameworkPropertyMetadata(new FontFamily("Segoe UI Variable, Segoe UI"), FrameworkPropertyMetadataOptions.AffectsRender));
+    public static readonly DependencyProperty FontWeightProperty = System.Windows.Documents.TextElement.FontWeightProperty.AddOwner(
+        typeof(SakvarorTotalsFooter), new FrameworkPropertyMetadata(FontWeights.SemiBold, FrameworkPropertyMetadataOptions.AffectsRender));
 
     public DataGrid? TargetGrid { get => (DataGrid?)GetValue(TargetGridProperty); set => SetValue(TargetGridProperty, value); }
     public double PrisNto { get => (double)GetValue(PrisNtoProperty); set => SetValue(PrisNtoProperty, value); }
     public double Offertpris { get => (double)GetValue(OffertprisProperty); set => SetValue(OffertprisProperty, value); }
     public double Slutpris { get => (double)GetValue(SlutprisProperty); set => SetValue(SlutprisProperty, value); }
     public double Differens { get => (double)GetValue(DifferensProperty); set => SetValue(DifferensProperty, value); }
+    public Brush SurfaceBrush { get => (Brush)GetValue(SurfaceBrushProperty); set => SetValue(SurfaceBrushProperty, value); }
+    public Brush TextBrush { get => (Brush)GetValue(TextBrushProperty); set => SetValue(TextBrushProperty, value); }
+    public Brush OutlineBrush { get => (Brush)GetValue(OutlineBrushProperty); set => SetValue(OutlineBrushProperty, value); }
+    public double FontSize { get => (double)GetValue(FontSizeProperty); set => SetValue(FontSizeProperty, value); }
+    public FontFamily FontFamily { get => (FontFamily)GetValue(FontFamilyProperty); set => SetValue(FontFamilyProperty, value); }
+    public FontWeight FontWeight { get => (FontWeight)GetValue(FontWeightProperty); set => SetValue(FontWeightProperty, value); }
 
     private DataGrid? _observedGrid;
     private Rect[] _lastBounds = [];
@@ -29,7 +44,10 @@ public sealed class SakvarorTotalsFooter : FrameworkElement
 
     public SakvarorTotalsFooter()
     {
-        Height = 30;
+        Height = 38;
+        SetResourceReference(SurfaceBrushProperty, "SurfaceBrush");
+        SetResourceReference(TextBrushProperty, "TextPrimaryBrush");
+        SetResourceReference(OutlineBrushProperty, "BorderBrush");
         ClipToBounds = true;
         ToolTip = "Summa för alla projektrader, oavsett filter";
         Loaded += (_, _) => ObserveGrid();
@@ -39,6 +57,10 @@ public sealed class SakvarorTotalsFooter : FrameworkElement
     private static DependencyProperty TotalProperty(string name) => DependencyProperty.Register(
         name, typeof(double), typeof(SakvarorTotalsFooter),
         new FrameworkPropertyMetadata(0d, FrameworkPropertyMetadataOptions.AffectsRender));
+
+    private static DependencyProperty BrushProperty(string name, Brush fallback) => DependencyProperty.Register(
+        name, typeof(Brush), typeof(SakvarorTotalsFooter),
+        new FrameworkPropertyMetadata(fallback, FrameworkPropertyMetadataOptions.AffectsRender));
 
     private static void OnTargetChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args)
     {
@@ -106,8 +128,8 @@ public sealed class SakvarorTotalsFooter : FrameworkElement
     protected override void OnRender(DrawingContext drawingContext)
     {
         base.OnRender(drawingContext);
-        var outline = new Pen(Brushes.Black, 1);
-        drawingContext.DrawRectangle(Brushes.WhiteSmoke, null, new Rect(0, 0, ActualWidth, ActualHeight));
+        var outline = new Pen(OutlineBrush, 1);
+        drawingContext.DrawRectangle(SurfaceBrush, null, new Rect(0, 0, ActualWidth, ActualHeight));
         foreach (var cell in GetCells())
         {
             var value = cell.Path switch
@@ -119,10 +141,10 @@ public sealed class SakvarorTotalsFooter : FrameworkElement
             };
             var text = new FormattedText(value.ToString("N2", CultureInfo.GetCultureInfo("sv-SE")),
                 CultureInfo.GetCultureInfo("sv-SE"), FlowDirection.LeftToRight,
-                new Typeface(new FontFamily("Arial"), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal),
-                11, Brushes.Black, VisualTreeHelper.GetDpi(this).PixelsPerDip);
+                new Typeface(FontFamily, FontStyles.Normal, FontWeight, FontStretches.Normal),
+                FontSize, TextBrush, VisualTreeHelper.GetDpi(this).PixelsPerDip);
             drawingContext.PushClip(new RectangleGeometry(cell.Bounds));
-            drawingContext.DrawRectangle(Brushes.WhiteSmoke, outline, cell.Bounds);
+            drawingContext.DrawRectangle(SurfaceBrush, null, cell.Bounds);
             drawingContext.DrawText(text, new Point(cell.Bounds.Right - text.Width - 6,
                 Math.Max(0, (ActualHeight - text.Height) / 2)));
             drawingContext.Pop();

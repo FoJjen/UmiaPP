@@ -65,7 +65,31 @@ public partial class OverviewTabViewModel : ObservableObject
     private string _budgetedCostInput = string.Empty;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasMargin))]
+    [NotifyPropertyChangedFor(nameof(IsNegativeMargin))]
+    [NotifyPropertyChangedFor(nameof(MarginGaugeValue))]
+    [NotifyPropertyChangedFor(nameof(MarginGaugeDescription))]
+    [NotifyPropertyChangedFor(nameof(TargetTgVariance))]
     private decimal? _currentTg;
+
+    public decimal? TargetTg => Project.TargetTg;
+    public decimal? TargetTgVariance => CurrentTg.HasValue && TargetTg.HasValue
+        ? CurrentTg.Value - TargetTg.Value : null;
+
+    public bool HasMargin => CurrentTg.HasValue;
+    public bool IsNegativeMargin => CurrentTg is < 0;
+    public double MarginGaugeValue => CurrentTg is decimal value
+        ? (double)Math.Clamp(value, 0m, 100m)
+        : 0;
+    public string MarginGaugeDescription => CurrentTg switch
+    {
+        null => "TG kan inte beräknas med tillgängliga uppgifter.",
+        < 0 => "Negativ marginal. Skalan börjar vid 0 %; det faktiska värdet visas ovan.",
+        > 100 => "Marginalen överstiger 100 %. Skalan slutar vid 100 %; det faktiska värdet visas ovan.",
+        _ => TargetTg is decimal target
+            ? $"Aktuell marginal på en skala från 0 till 100 %. Målprognos TG: {target.ToString("N1", CultureInfo.GetCultureInfo("sv-SE"))} %."
+            : "Aktuell marginal på en skala från 0 till 100 %. Ingen målprognos."
+    };
 
     [ObservableProperty]
     private decimal? _productionCost;
@@ -134,6 +158,9 @@ public partial class OverviewTabViewModel : ObservableObject
         OnPropertyChanged(nameof(DeliveryMark));
         OnPropertyChanged(nameof(DeliveryDiscipline));
         OnPropertyChanged(nameof(DeliveryInfoText));
+        OnPropertyChanged(nameof(TargetTg));
+        OnPropertyChanged(nameof(TargetTgVariance));
+        OnPropertyChanged(nameof(MarginGaugeDescription));
     }
 
     [RelayCommand]

@@ -24,6 +24,15 @@ public class ProjectRepository : IProjectRepository
                 ?? throw new InvalidOperationException("Sakvaruraden finns inte längre i projektet.");
         }
 
+        // Existing rows use their persisted values as the baseline on first edit.
+        // A newly created article starts with its entered identity as the baseline.
+        if (!saved.HasOriginalArticleIdentity)
+        {
+            saved.OriginalProduktkod = item.Id == 0 ? item.Produktkod : saved.Produktkod;
+            saved.OriginalLeverantor = item.Id == 0 ? item.Leverantor : saved.Leverantor;
+            saved.HasOriginalArticleIdentity = true;
+        }
+
         saved.Beteckning = item.Beteckning;
         saved.Dim1 = item.Dim1;
         saved.Dim2 = item.Dim2;
@@ -40,8 +49,95 @@ public class ProjectRepository : IProjectRepository
         saved.Slutpris = item.Slutpris;
         saved.ArKopt = item.ArKopt;
         saved.Anteckningar = item.Anteckningar;
+        // Quote membership is saved by the dedicated transactional quote APIs.
+        // A delayed row edit must not overwrite a newer link/unlink operation.
         await context.SaveChangesAsync();
         item.Id = saved.Id;
+        item.OriginalProduktkod = saved.OriginalProduktkod;
+        item.OriginalLeverantor = saved.OriginalLeverantor;
+        item.HasOriginalArticleIdentity = saved.HasOriginalArticleIdentity;
+        item.NotifyArticleIdentityChanged();
+    }
+
+    public async Task SavePackageQuoteAsync(LubeSakvaraOffert quote, IReadOnlyList<int> articleIds)
+    {
+        await using var context = _contextFactory();
+        await using var transaction = await context.Database.BeginTransactionAsync();
+        LubeSakvaraOffert saved;
+        if (quote.Id == 0)
+        {
+            saved = new LubeSakvaraOffert { ProjectId = quote.ProjectId };
+            context.LubeSakvarorOfferter.Add(saved);
+        }
+        else
+        {
+            saved = await context.LubeSakvarorOfferter.SingleOrDefaultAsync(x => x.Id == quote.Id && x.ProjectId == quote.ProjectId)
+                ?? throw new InvalidOperationException("Offerten finns inte längre i projektet.");
+        }
+
+        saved.Leverantor = quote.Leverantor;
+        saved.Produktgrupp = quote.Produktgrupp;
+        saved.OffereratPris = quote.OffereratPris;
+        saved.Valuta = quote.Valuta;
+        saved.Kommentar = quote.Kommentar;
+        saved.QuoteDate = quote.QuoteDate;
+        saved.FinalAmount = quote.FinalAmount;
+        saved.FilePath = quote.FilePath;
+        saved.IsPackageQuote = true;
+        await context.SaveChangesAsync();
+
+        if (articleIds.Count > 0)
+        {
+            var articles = await context.LubeSakvarorMangder
+                .Where(x => x.ProjectId == quote.ProjectId && articleIds.Contains(x.Id))
+                .ToListAsync();
+            if (articles.Count != articleIds.Distinct().Count())
+                throw new InvalidOperationException("En eller flera artiklar finns inte längre i projektet.");
+
+            foreach (var article in articles)
+                article.PackageQuoteId = saved.Id;
+            await context.SaveChangesAsync();
+        }
+        await transaction.CommitAsync();
+        quote.Id = saved.Id;
+    }
+
+    public async Task DeletePackageQuoteAsync(int projectId, int quoteId)
+    {
+        await using var context = _contextFactory();
+        await using var transaction = await context.Database.BeginTransactionAsync();
+        var quote = await context.LubeSakvarorOfferter.SingleOrDefaultAsync(
+            q => q.Id == quoteId && q.ProjectId == projectId && q.IsPackageQuote)
+            ?? throw new InvalidOperationException("Offerten finns inte i projektet.");
+        var articles = await context.LubeSakvarorMangder
+            .Where(row => row.ProjectId == projectId && row.PackageQuoteId == quoteId)
+            .ToListAsync();
+        foreach (var article in articles)
+            article.PackageQuoteId = null;
+
+        // Keep articles, their individual prices and any attached file on disk.
+        context.LubeSakvarorOfferter.Remove(quote);
+        await context.SaveChangesAsync();
+        await transaction.CommitAsync();
+    }
+
+    public async Task SetArticleQuoteLinksAsync(int projectId, IReadOnlyList<int> articleIds, int? quoteId)
+    {
+        var ids = articleIds.Distinct().ToArray();
+        if (ids.Length == 0) return;
+        await using var context = _contextFactory();
+        await using var transaction = await context.Database.BeginTransactionAsync();
+        if (quoteId.HasValue && !await context.LubeSakvarorOfferter.AnyAsync(
+                q => q.Id == quoteId.Value && q.ProjectId == projectId && q.IsPackageQuote))
+            throw new InvalidOperationException("Offerten finns inte i projektet.");
+        var articles = await context.LubeSakvarorMangder
+            .Where(a => a.ProjectId == projectId && ids.Contains(a.Id)).ToListAsync();
+        if (articles.Count != ids.Length)
+            throw new InvalidOperationException("En eller flera artiklar finns inte i projektet.");
+        foreach (var article in articles)
+            article.PackageQuoteId = quoteId;
+        await context.SaveChangesAsync();
+        await transaction.CommitAsync();
     }
 
     public ProjectRepository(Func<AppDbContext>? contextFactory = null)
@@ -103,6 +199,7 @@ public class ProjectRepository : IProjectRepository
         existing.DeliveryAddress = project.DeliveryAddress;
         existing.ContactPerson = project.ContactPerson;
         existing.InvoiceDetails = project.InvoiceDetails;
+        existing.TargetTg = project.TargetTg;
 
         await context.SaveChangesAsync();
         return existing;

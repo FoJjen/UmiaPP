@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.Input;
 using UmiaPP.Data;
 using UmiaPP.Models;
 using UmiaPP.Services;
+using UmiaPP.Views;
 
 namespace UmiaPP.ViewModels;
 
@@ -15,9 +16,11 @@ public partial class LubeCalculationTabViewModel : ObservableObject
     private readonly IDataService _dataService;
     private readonly ILubeImportService _lubeImportService;
     private readonly IDialogService _dialogService;
+    private readonly ILocalizationService _settingsService;
     private readonly HashSet<LubeSakvaraMangd> _totalRows = [];
     private readonly SemaphoreSlim _summarySaveLock = new(1, 1);
     private bool _ataLoadFailed;
+    private bool _updatingSpecificationOutcome;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Outcome))]
@@ -26,16 +29,118 @@ public partial class LubeCalculationTabViewModel : ObservableObject
     [ObservableProperty]
     private string _ataStatus = string.Empty;
 
+    [ObservableProperty]
+    private Project _project = null!;
+
+    [ObservableProperty]
+    private LubeCalculationSummary _summary = new();
+
+    [ObservableProperty]
+    private ObservableCollection<LubeKalkylPost> _kalkylPoster = [];
+
+    [ObservableProperty]
+    private ObservableCollection<LubeProjektanpassningPost> _projektanpassningar = [];
+
+    [ObservableProperty]
+    private ObservableCollection<LubeSakvaraMangd> _sakvarorMangder = [];
+
+    [ObservableProperty]
+    private ObservableCollection<LubeSakvaraOffert> _sakvarorOfferter = [];
+
+    [ObservableProperty]
+    private ObservableCollection<LubeSakvaraLeveranspris> _sakvarorLeveranspriser = [];
+
+    [ObservableProperty]
+    private ObservableCollection<LubeSakvaraMontage> _sakvarorMontage = [];
+
+    [ObservableProperty]
+    private ObservableCollection<LubeEjMangdbaserad> _ejMangdbaserade = [];
+
+    [ObservableProperty]
+    private ObservableCollection<LubeKalkylPost> _filteredKalkylPoster = [];
+
+    [ObservableProperty]
+    private ObservableCollection<LubeSakvaraMangd> _filteredSakvaror = [];
+
+    [ObservableProperty]
+    private string _filterText = string.Empty;
+
+    [ObservableProperty]
+    private int _selectedLubeTabIndex;
+
+    [ObservableProperty]
+    private bool _isImporting;
+
+    [ObservableProperty]
+    private string _lubeProjektNummer = string.Empty;
+
+    [ObservableProperty]
+    private string _lubePdelRitning = string.Empty;
+
+    [ObservableProperty]
+    private string _lubeHandling = string.Empty;
+
+    [ObservableProperty]
+    private string _lubeDatum = string.Empty;
+
     public AtaOutcome Outcome => new(AtaSummary,
         _ataLoadFailed ? null : Project.SalesPrice, _ataLoadFailed ? null : GetBaseOutcomeCost(), Project.Discipline);
 
-    private decimal? GetBaseOutcomeCost()
+    public double SumSlutpris => UnlinkedRows.Sum(x => x.EffectiveSlutpris)
+        + PackageQuotes.Sum(q => q.EffectiveAmount);
+
+    public double SumPrisNto => SakvarorMangder.Sum(x => x.PrisNto);
+    public double SumOffertpris => UnlinkedRows.Sum(x => x.EffectiveOffertpris)
+        + PackageQuotes.Sum(q => q.OffereratPris);
+    public double SumDifferens => SumSlutpris - SumOffertpris;
+    public double SumTotalMaterial => KalkylPoster.Sum(x => x.TotaltMaterial);
+    public double SumTotalTimmar => KalkylPoster.Sum(x => x.TotaltMontageTimmar);
+
+    public IEnumerable<LubeSakvaraMangd> UnlinkedRows => SakvarorMangder.Where(x => !x.HasPackageQuote);
+    public IEnumerable<LubeSakvaraOffert> PackageQuotes => SakvarorOfferter.Where(q => q.IsPackageQuote);
+    public ObservableCollection<LubeSakvaraMangd> SelectedSakvaror { get; } = [];
+    public ObservableCollection<LubeSakvaraMangd> SpecificationRows { get; } = [];
+    public ObservableCollection<LubeTabOption> TabOptions { get; } = [];
+
+    public LubeTabOption SammandragTab { get; }
+    public LubeTabOption SakvarorSpecTab { get; }
+    public LubeTabOption KalkylTab { get; }
+    public LubeTabOption AnpassningTab { get; }
+    public LubeTabOption SakvarorMangdTab { get; }
+    public LubeTabOption SakvarorOffertTab { get; }
+    public LubeTabOption LeveransTab { get; }
+    public LubeTabOption MontageTab { get; }
+    public LubeTabOption EjMangdTab { get; }
+
+    public LubeCalculationTabViewModel(
+        Project project,
+        IDataService dataService,
+        ILubeImportService lubeImportService,
+        IDialogService dialogService)
     {
-        if (string.IsNullOrWhiteSpace(Project.LubeSummaryJson)) return null;
-        var cost = Summary.ActualProductionCost;
-        if (!double.IsFinite(cost)) return null;
-        try { return checked((decimal)cost); }
-        catch (OverflowException) { return null; }
+        _dataService = dataService;
+        _lubeImportService = lubeImportService;
+        _dialogService = dialogService;
+        _settingsService = new LocalizationService();
+        Project = project;
+
+        SammandragTab = CreateTab("sammandrag", "Kalkylsammandrag", false);
+        SakvarorSpecTab = CreateTab("specifikation", "Specifikation", false);
+        KalkylTab = CreateTab("kalkyl", "Kalkyl", true);
+        AnpassningTab = CreateTab("anpassning", "Projektanpassning", true);
+        SakvarorMangdTab = CreateTab("sakvarormangd", "Sakvaror mängd", true);
+        SakvarorOffertTab = CreateTab("sakvaroroffert", "Sakvaror offerter", true);
+        LeveransTab = CreateTab("leverans", "Leveranspris", true);
+        MontageTab = CreateTab("montage", "Montage", true);
+        EjMangdTab = CreateTab("ejmangd", "Ej mängdbaserade", true);
+        LoadFromProject(project);
+        RefreshPackageQuoteLabels();
+    }
+
+    public void UpdateProject(Project project)
+    {
+        Project = project;
+        LoadFromProject(project);
     }
 
     public void RefreshAtaSummary()
@@ -56,6 +161,60 @@ public partial class LubeCalculationTabViewModel : ObservableObject
             AtaStatus = "Den sparade ÄTA-sammanställningen kan inte läsas. Välj filen igen under ÄTA.";
         }
         OnPropertyChanged(nameof(Outcome));
+    }
+
+    public void SetSelectedSakvaror(IEnumerable<LubeSakvaraMangd> selected)
+    {
+        var articles = selected.Where(row => !row.IsQuoteSummaryRow).Distinct().ToArray();
+        SelectedSakvaror.Clear();
+        foreach (var row in articles)
+            SelectedSakvaror.Add(row);
+    }
+
+    public void RefreshPackageQuoteLabels()
+    {
+        foreach (var row in SakvarorMangder)
+        {
+            var quote = row.PackageQuoteId is int id
+                ? SakvarorOfferter.FirstOrDefault(q => q.Id == id)
+                : null;
+            row.PackageQuoteLabel = quote == null
+                ? row.HasPackageQuote ? $"Ingår i offert #{row.PackageQuoteId}" : string.Empty
+                : $"Ingår i offert {GetPackageQuoteReference(quote)}";
+            row.NotifyQuoteChanged();
+        }
+
+        FilterSakvaror();
+        RefreshSpecificationTotals();
+    }
+
+    public void RefreshSpecificationTotals()
+    {
+        NotifyQuoteTotals();
+        UpdateSpecificationOutcome();
+    }
+
+    public async Task SaveSakvaraSpecificationRowAsync(LubeSakvaraMangd item)
+    {
+        try
+        {
+            item.ProjectId = Project.Id;
+            await _dataService.Projects.SaveSakvaraSpecificationRowAsync(item);
+            RefreshSpecificationTotals();
+        }
+        catch (Exception ex)
+        {
+            _dialogService.ShowError($"Kunde inte spara raden: {ex.Message}", "Sparfel");
+        }
+    }
+
+    private decimal? GetBaseOutcomeCost()
+    {
+        if (string.IsNullOrWhiteSpace(Project.LubeSummaryJson)) return null;
+        var cost = Summary.ActualProductionCost;
+        if (!double.IsFinite(cost)) return null;
+        try { return checked((decimal)cost); }
+        catch (OverflowException) { return null; }
     }
 
     partial void OnSummaryChanged(LubeCalculationSummary? oldValue, LubeCalculationSummary newValue)
@@ -91,12 +250,6 @@ public partial class LubeCalculationTabViewModel : ObservableObject
         }
     }
 
-    public double SumSlutpris => SakvarorMangder.Sum(x => x.EffectiveSlutpris);
-
-    public double SumPrisNto => SakvarorMangder.Sum(x => x.PrisNto);
-    public double SumOffertpris => SakvarorMangder.Sum(x => x.EffectiveOffertpris);
-    public double SumDifferens => SakvarorMangder.Sum(x => x.Differens);
-
     [RelayCommand]
     private void CheckOfferTotal()
     {
@@ -108,19 +261,18 @@ public partial class LubeCalculationTabViewModel : ObservableObject
         report.AppendLine("Filter påverkar inte summan. Negativa belopp ingår.");
         report.AppendLine("Belopp visas utan tusentalsavskiljare och utan avrundning.");
         report.AppendLine();
-        report.AppendLine("Rad | ID | Beteckning | Produkt | Inmatat offertpris | Visat offertpris");
+        report.AppendLine("Rad | ID | Beteckning | Produkt | Inmatat offertpris | Visat offertpris | Paketoffert");
         for (var index = 0; index < rows.Length; index++)
         {
             var row = rows[index];
-            if (row.Offertpris == 0 && row.EffectiveOffertpris == 0) continue;
-            report.AppendLine($"{index + 1} | {row.Id} | {row.Beteckning} | {row.Produkt} | {row.Offertpris.ToString("G17", culture)} | {row.EffectiveOffertpris.ToString("G17", culture)}");
+            if (row.Offertpris == 0 && row.EffectiveOffertpris == 0 && !row.HasPackageQuote) continue;
+            report.AppendLine($"{index + 1} | {row.Id} | {row.Beteckning} | {row.Produkt} | {row.Offertpris.ToString("G17", culture)} | {row.EffectiveOffertpris.ToString("G17", culture)} | {row.PackageQuoteLabel}");
         }
-        var total = rows.Sum(row => row.EffectiveOffertpris);
+        var total = UnlinkedRows.Sum(row => row.EffectiveOffertpris) + PackageQuotes.Sum(q => q.OffereratPris);
         report.AppendLine();
         report.AppendLine($"Summa inmatade offertpriser: {rows.Sum(row => row.Offertpris).ToString("N2", culture)} kr");
-        report.AppendLine($"Summa Offertpris inklusive Pris nto som reservvärde: {total.ToString("N2", culture)} kr");
+        report.AppendLine($"Summa Offertpris inklusive paketofferter: {total.ToString("N2", culture)} kr");
         report.AppendLine($"Summa före visningsavrundning: {total.ToString("G17", culture)}");
-        report.AppendLine($"Avvikelse från 135 910,00 kr: {(total - 135910d).ToString("N2", culture)} kr");
         var duplicateIds = rows.Where(row => row.Id != 0).GroupBy(row => row.Id)
             .Where(group => group.Count() > 1).ToArray();
         foreach (var group in duplicateIds)
@@ -136,303 +288,197 @@ public partial class LubeCalculationTabViewModel : ObservableObject
             VerticalScrollBarVisibility = System.Windows.Controls.ScrollBarVisibility.Auto,
             HorizontalScrollBarVisibility = System.Windows.Controls.ScrollBarVisibility.Auto,
             FontFamily = new System.Windows.Media.FontFamily("Consolas"),
-            FontSize = 13,
+            FontSize = 12,
             Margin = new System.Windows.Thickness(12)
         };
-        var window = new System.Windows.Window
+        var offerWindow = new System.Windows.Window
         {
-            Title = "Kontrollera offertsumma – markera text och kopiera med Ctrl+C",
-            Width = 900,
-            Height = 600,
+            Title = "Kontrollera offertsumma",
+            Width = 920,
+            Height = 560,
             Content = text,
             WindowStartupLocation = System.Windows.WindowStartupLocation.CenterOwner
         };
+        if (System.Windows.Application.Current?.MainWindow is { } offerOwner)
+            offerWindow.Owner = offerOwner;
+        offerWindow.ShowDialog();
+    }
+
+    [RelayCommand]
+    private async Task LinkSelectedToQuoteAsync(System.Collections.IList? selectedItems)
+    {
+        if (selectedItems == null)
+        {
+            _dialogService.ShowError("Markeringen kunde inte läsas från artikeltabellen.", "Offert");
+            return;
+        }
+
+        // Snapshot the grid's selection before opening a dialog or awaiting a save.
+        var selected = selectedItems.OfType<LubeSakvaraMangd>()
+            .Where(row => !row.IsQuoteSummaryRow).Distinct().ToArray();
+        if (selected.Length == 0)
+        {
+            _dialogService.ShowError("Markera minst en artikelrad i specifikationen.", "Offert");
+            return;
+        }
+
+        if (selected.Any(row => row.Id == 0))
+        {
+            _dialogService.ShowError("En eller flera markerade artikelrader är inte sparade. Spara raderna innan du kopplar dem till en offert.", "Offert");
+            return;
+        }
+
+        if (selected.Any(r => r.HasPackageQuote) &&
+            !_dialogService.Confirm("En eller flera rader ingår redan i en offert. Vill du flytta dem till den nya offerten?", "Offert"))
+            return;
+
+        var dialog = new LinkQuoteDialogViewModel(selected);
+        var quoteWindow = new LinkQuoteDialog(dialog);
         if (System.Windows.Application.Current?.MainWindow is { } owner)
-            window.Owner = owner;
-        window.ShowDialog();
-    }
+            quoteWindow.Owner = owner;
+        if (quoteWindow.ShowDialog() != true) return;
 
-    private void RefreshSpecificationTotals()
-    {
-        OnPropertyChanged(nameof(SumPrisNto));
-        OnPropertyChanged(nameof(SumOffertpris));
-        OnPropertyChanged(nameof(SumSlutpris));
-        OnPropertyChanged(nameof(SumDifferens));
-        UpdateSpecificationOutcome();
-    }
+        var quote = new LubeSakvaraOffert
+        {
+            ProjectId = Project.Id,
+            Leverantor = dialog.Supplier.Trim(),
+            Produktgrupp = string.IsNullOrWhiteSpace(dialog.QuoteNumber)
+                ? $"Paketoffert {dialog.Supplier}".Trim()
+                : dialog.QuoteNumber.Trim(),
+            OffereratPris = dialog.QuotedAmount,
+            FinalAmount = dialog.FinalAmount,
+            QuoteDate = dialog.QuoteDate,
+            FilePath = dialog.FilePath,
+            IsPackageQuote = true,
+            Kommentar = string.Join(", ", selected.Select(r => r.Beteckning).Where(s => !string.IsNullOrWhiteSpace(s)))
+        };
 
-    private bool _updatingSpecificationOutcome;
-
-    private void UpdateSpecificationOutcome()
-    {
-        if (_updatingSpecificationOutcome || SakvarorMangder.Count == 0) return;
-        static string Key(string value) => value.Trim().ToUpperInvariant();
-        var deliveryRows = Summary.ReportSections
-            .Where(section => Key(section.Title) == "LEVERANSER")
-            .SelectMany(section => section.Rows)
-            .Where(row => !row.IsHeader && !row.IsTotal && Key(row.Label) == "SAKVAROR")
-            .ToArray();
-        var priced = deliveryRows.Where(row => Key(row.List) is "PRISSATT" or "PRISATT").ToArray();
-        var quoted = deliveryRows.Where(row => Key(row.List) == "OFFERTER").ToArray();
-        // Require an unambiguous pair: do not apply a group total to multiple report rows.
-        if (priced.Length != 1 || quoted.Length != 1) return;
-        _updatingSpecificationOutcome = true;
         try
         {
-            priced[0].ActualCost = SakvarorMangder.Where(row => row.PrisNto != 0)
-                .Sum(row => row.EffectiveSlutpris);
-            quoted[0].ActualCost = SakvarorMangder.Where(row => row.PrisNto == 0)
-                .Sum(row => row.EffectiveSlutpris);
-            priced[0].CanEditActualCost = false;
-            quoted[0].CanEditActualCost = false;
-            OnPropertyChanged(nameof(Outcome));
+            await _dataService.Projects.SavePackageQuoteAsync(quote, selected.Select(r => r.Id).ToArray());
+            if (SakvarorOfferter.All(q => q.Id != quote.Id))
+                SakvarorOfferter.Add(quote);
+            foreach (var row in selected)
+            {
+                row.PackageQuoteId = quote.Id;
+                if (string.IsNullOrWhiteSpace(row.Leverantor))
+                    row.Leverantor = quote.Leverantor;
+            }
+            RefreshPackageQuoteLabels();
         }
-        finally
+        catch (Exception ex)
         {
-            _updatingSpecificationOutcome = false;
+            _dialogService.ShowError($"Kunde inte spara offerten: {ex.Message}", "Offert");
         }
     }
 
     [RelayCommand]
     private async Task AddSakvaraRowAsync()
     {
-        var project = Project;
-        var item = new LubeSakvaraMangd
-        {
-            ProjectId = project.Id,
-            Beteckning = "Ny rad",
-            Produkt = "Ny rad",
-            Enhet = "st"
-        };
+        var item = new LubeSakvaraMangd { ProjectId = Project.Id, Enhet = "st" };
         try
         {
             await _dataService.Projects.SaveSakvaraSpecificationRowAsync(item);
-            if (!ReferenceEquals(project, Project)) return;
             SakvarorMangder.Add(item);
-            FilterText = string.Empty;
-            if (!FilteredSakvaror.Contains(item))
-                FilteredSakvaror.Add(item);
+            FilterSakvaror();
+            RefreshSpecificationTotals();
         }
         catch (Exception ex)
         {
-            _dialogService.ShowError($"Kunde inte skapa sakvaruraden: {ex.Message}", "Sparfel");
+            _dialogService.ShowError($"Kunde inte lägga till raden: {ex.Message}", "Sparfel");
         }
     }
 
-    public async Task SaveSakvaraSpecificationRowAsync(LubeSakvaraMangd item)
+    [RelayCommand]
+    private async Task ToggleKoptAsync(LubeSakvaraMangd? item)
     {
+        if (item == null || item.IsQuoteSummaryRow) return;
+        item.ArKopt = !item.ArKopt;
+        await SaveSakvaraSpecificationRowAsync(item);
+    }
+
+    [RelayCommand]
+    private async Task ImportLubeExcelAsync()
+    {
+        var path = _dialogService.OpenFileDialog(
+            "Excel-filer (*.xlsx;*.xls)|*.xlsx;*.xls|Alla filer (*.*)|*.*",
+            "Importera Lube-kalkyl");
+        if (string.IsNullOrWhiteSpace(path)) return;
+
+        IsImporting = true;
         try
         {
-            await _dataService.Projects.SaveSakvaraSpecificationRowAsync(item);
+            var result = await _lubeImportService.ImportAsync(path);
+            if (!result.Success)
+            {
+                _dialogService.ShowError(result.ErrorMessage ?? "Importen misslyckades.", "Import");
+                return;
+            }
+
+            LubeProjektNummer = result.ProjektNummer ?? Project.ProjectNumber;
+            LubePdelRitning = result.PdelRitning ?? string.Empty;
+            LubeHandling = result.Handling ?? string.Empty;
+            LubeDatum = result.Datum ?? string.Empty;
+
+            foreach (var row in result.KalkylPoster) row.ProjectId = Project.Id;
+            foreach (var row in result.Anpassningar) row.ProjectId = Project.Id;
+            foreach (var row in result.SakvarorMangder) row.ProjectId = Project.Id;
+            foreach (var row in result.SakvarorOfferter) row.ProjectId = Project.Id;
+            foreach (var row in result.SakvarorLeveranspriser) row.ProjectId = Project.Id;
+            foreach (var row in result.SakvarorMontagePoster) row.ProjectId = Project.Id;
+            foreach (var row in result.EjMangdbaseradePoster) row.ProjectId = Project.Id;
+
+            await _summarySaveLock.WaitAsync();
+            try
+            {
+                await _dataService.Projects.SaveLubeCalculationDataAsync(
+                    Project.Id,
+                    result.KalkylPoster,
+                    result.Anpassningar,
+                    result.SakvarorMangder,
+                    result.SakvarorOfferter,
+                    result.SakvarorLeveranspriser,
+                    result.SakvarorMontagePoster,
+                    result.EjMangdbaseradePoster,
+                    result.Summary);
+                var json = JsonSerializer.Serialize(result.Summary);
+                await _dataService.Projects.SaveLubeSummaryAsync(Project.Id, json);
+                Project.LubeSummaryJson = json;
+            }
+            finally
+            {
+                _summarySaveLock.Release();
+            }
+
+            var reloaded = await _dataService.Projects.GetByIdAsync(Project.Id) ?? Project;
+            LoadFromProject(reloaded);
+            _dialogService.ShowMessage("Lube-kalkylen har importerats.", "Import");
         }
         catch (Exception ex)
         {
-            _dialogService.ShowError($"Kunde inte spara sakvaruraden: {ex.Message}", "Sparfel");
+            _dialogService.ShowError($"Kunde inte importera filen: {ex.Message}", "Import");
+        }
+        finally
+        {
+            IsImporting = false;
         }
     }
 
     partial void OnSakvarorMangderChanged(ObservableCollection<LubeSakvaraMangd>? oldValue, ObservableCollection<LubeSakvaraMangd> newValue)
     {
         if (oldValue != null)
+        {
             oldValue.CollectionChanged -= OnSakvarorCollectionChanged;
+            foreach (var row in oldValue)
+                row.PropertyChanged -= OnSakvaraPropertyChanged;
+        }
+
         newValue.CollectionChanged += OnSakvarorCollectionChanged;
+        foreach (var row in newValue)
+            row.PropertyChanged += OnSakvaraPropertyChanged;
         TrackTotalRows();
-    }
-
-    private void OnSakvarorCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) => TrackTotalRows();
-
-    private void TrackTotalRows()
-    {
-        foreach (var row in _totalRows)
-            row.PropertyChanged -= OnSakvaraPriceChanged;
-        _totalRows.Clear();
-        foreach (var row in SakvarorMangder)
-        {
-            if (_totalRows.Add(row))
-                row.PropertyChanged += OnSakvaraPriceChanged;
-        }
-        RefreshSpecificationTotals();
-    }
-
-    private void OnSakvaraPriceChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        if (string.IsNullOrEmpty(e.PropertyName) ||
-            e.PropertyName is nameof(LubeSakvaraMangd.PrisNto)
-                or nameof(LubeSakvaraMangd.Antal)
-                or nameof(LubeSakvaraMangd.Offertpris)
-                or nameof(LubeSakvaraMangd.Slutpris)
-                or nameof(LubeSakvaraMangd.Differens))
-            RefreshSpecificationTotals();
-    }
-
-    [ObservableProperty]
-    private Project _project;
-
-    [ObservableProperty]
-    private ObservableCollection<LubeKalkylPost> _kalkylPoster = [];
-
-    [ObservableProperty]
-    private ObservableCollection<LubeKalkylPost> _filteredKalkylPoster = [];
-
-    [ObservableProperty]
-    private ObservableCollection<LubeProjektanpassningPost> _projektanpassningar = [];
-
-    [ObservableProperty]
-    private ObservableCollection<LubeSakvaraMangd> _sakvarorMangder = [];
-
-    [ObservableProperty]
-    private ObservableCollection<LubeSakvaraOffert> _sakvarorOfferter = [];
-
-    [ObservableProperty]
-    private ObservableCollection<LubeSakvaraLeveranspris> _sakvarorLeveranspriser = [];
-
-    [ObservableProperty]
-    private ObservableCollection<LubeSakvaraMontage> _sakvarorMontage = [];
-
-    [ObservableProperty]
-    private ObservableCollection<LubeEjMangdbaserad> _ejMangdbaserade = [];
-
-    [ObservableProperty]
-    private LubeCalculationSummary _summary = new();
-
-    [ObservableProperty]
-    private string _lubeProjektNummer = string.Empty;
-
-    [ObservableProperty]
-    private string _lubePdelRitning = string.Empty;
-
-    [ObservableProperty]
-    private string _lubeHandling = string.Empty;
-
-    [ObservableProperty]
-    private string _lubeDatum = string.Empty;
-
-    [ObservableProperty]
-    private ObservableCollection<LubeSakvaraMangd> _filteredSakvaror = [];
-
-    [ObservableProperty]
-    private double _sumTotalMaterial;
-
-    [ObservableProperty]
-    private double _sumTotalTimmar;
-
-    [ObservableProperty]
-    private string _filterText = string.Empty;
-
-    [ObservableProperty]
-    private bool _isImporting;
-
-    [ObservableProperty]
-    private bool _isTabPickerOpen;
-
-    [ObservableProperty]
-    private int _selectedLubeTabIndex;
-
-    public ObservableCollection<LubeTabOption> TabOptions { get; } = [];
-    public LubeTabOption SammandragTab { get; }
-    public LubeTabOption SakvarorSpecTab { get; }
-    public LubeTabOption KalkylTab { get; }
-    public LubeTabOption AnpassningTab { get; }
-    public LubeTabOption SakvarorMangdTab { get; }
-    public LubeTabOption SakvarorOffertTab { get; }
-    public LubeTabOption LeveransTab { get; }
-    public LubeTabOption MontageTab { get; }
-    public LubeTabOption EjMangdTab { get; }
-
-    private readonly ILocalizationService _settingsService = new LocalizationService();
-
-    public LubeCalculationTabViewModel(
-        Project project,
-        IDataService dataService,
-        ILubeImportService lubeImportService,
-        IDialogService dialogService)
-    {
-        _project = project;
-        _dataService = dataService;
-        _lubeImportService = lubeImportService;
-        _dialogService = dialogService;
-
-        var hidden = _settingsService.LoadSettings().HiddenLubeTabs ?? [];
-        SammandragTab = CreateTab("sammandrag", "SubTabSammandrag", canHide: false, hidden);
-        SakvarorSpecTab = CreateTab("sakvarorSpec", "SubTabSakvarorSpec", true, hidden);
-        KalkylTab = CreateTab("kalkyl", "SubTabKalkyl", true, hidden);
-        AnpassningTab = CreateTab("anpassning", "SubTabAnpassning", true, hidden);
-        SakvarorMangdTab = CreateTab("sakvarorMangd", "SubTabSakvarorMangd", true, hidden);
-        SakvarorOffertTab = CreateTab("sakvarorOffert", "SubTabSakvarorOffert", true, hidden);
-        LeveransTab = CreateTab("leverans", "SubTabSakvarorLeverans", true, hidden);
-        MontageTab = CreateTab("montage", "SubTabSakvarorMontage", true, hidden);
-        EjMangdTab = CreateTab("ejMangd", "SubTabEjMangd", true, hidden);
-
-        LoadFromProject();
-    }
-
-    private LubeTabOption CreateTab(string key, string titleKey, bool canHide, List<string> hidden)
-    {
-        var option = new LubeTabOption(
-            key,
-            ResolveTitle(titleKey),
-            canHide,
-            isVisible: !hidden.Contains(key, StringComparer.OrdinalIgnoreCase),
-            OnTabVisibilityChanged);
-        TabOptions.Add(option);
-        return option;
-    }
-
-    private static string ResolveTitle(string resourceKey)
-    {
-        if (System.Windows.Application.Current?.TryFindResource(resourceKey) is string title)
-            return title;
-        return resourceKey;
-    }
-
-    private void OnTabVisibilityChanged(LubeTabOption option)
-    {
-        var index = TabOptions.IndexOf(option);
-        if (!option.IsVisible && SelectedLubeTabIndex == index)
-            SelectedLubeTabIndex = 0;
-
-        var settings = _settingsService.LoadSettings();
-        settings.HiddenLubeTabs = TabOptions
-            .Where(tab => tab.CanHide && !tab.IsVisible)
-            .Select(tab => tab.Key)
-            .ToList();
-        _settingsService.SaveSettings(settings);
-    }
-
-    public void UpdateProject(Project project)
-    {
-        Project = project;
-        LoadFromProject();
-    }
-
-    private void LoadFromProject()
-    {
-        Summary = new LubeCalculationSummary();
-        if (!string.IsNullOrWhiteSpace(Project.LubeSummaryJson))
-        {
-            try
-            {
-                Summary = JsonSerializer.Deserialize<LubeCalculationSummary>(Project.LubeSummaryJson)
-                    ?? new LubeCalculationSummary();
-            }
-            catch (JsonException ex)
-            {
-                _dialogService.ShowError($"Kunde inte läsa det sparade kalkylsammandraget: {ex.Message}", "Läsfel");
-            }
-        }
-
-        KalkylPoster = new ObservableCollection<LubeKalkylPost>(Project.LubeKalkylPoster ?? []);
-        Projektanpassningar = new ObservableCollection<LubeProjektanpassningPost>(Project.LubeProjektanpassningar ?? []);
-        SakvarorMangder = new ObservableCollection<LubeSakvaraMangd>(Project.LubeSakvarorMangder ?? []);
-        SakvarorOfferter = new ObservableCollection<LubeSakvaraOffert>(Project.LubeSakvarorOfferter ?? []);
-        SakvarorLeveranspriser = new ObservableCollection<LubeSakvaraLeveranspris>(Project.LubeSakvarorLeveranspriser ?? []);
-        SakvarorMontage = new ObservableCollection<LubeSakvaraMontage>(Project.LubeSakvarorMontagePoster ?? []);
-        EjMangdbaserade = new ObservableCollection<LubeEjMangdbaserad>(Project.LubeEjMangdbaseradePoster ?? []);
-
-        FilterKalkyl();
         FilterSakvaror();
-        CalculateTotals();
-        RefreshAtaSummary();
+        RefreshPackageQuoteLabels();
     }
 
     partial void OnFilterTextChanged(string value)
@@ -441,138 +487,309 @@ public partial class LubeCalculationTabViewModel : ObservableObject
         FilterSakvaror();
     }
 
+    private void OnSakvarorCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.OldItems != null)
+            foreach (LubeSakvaraMangd row in e.OldItems)
+                row.PropertyChanged -= OnSakvaraPropertyChanged;
+        if (e.NewItems != null)
+            foreach (LubeSakvaraMangd row in e.NewItems)
+                row.PropertyChanged += OnSakvaraPropertyChanged;
+        TrackTotalRows();
+        FilterSakvaror();
+        RefreshSpecificationTotals();
+    }
+
+    private void OnSakvaraPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(LubeSakvaraMangd.PrisNto)
+            or nameof(LubeSakvaraMangd.Offertpris)
+            or nameof(LubeSakvaraMangd.Slutpris)
+            or nameof(LubeSakvaraMangd.EffectiveOffertpris)
+            or nameof(LubeSakvaraMangd.EffectiveSlutpris)
+            or nameof(LubeSakvaraMangd.PackageQuoteId)
+            or nameof(LubeSakvaraMangd.Differens)
+            or nameof(LubeSakvaraMangd.Antal))
+            RefreshSpecificationTotals();
+    }
+
+    private void TrackTotalRows()
+    {
+        _totalRows.Clear();
+        foreach (var row in SakvarorMangder)
+            _totalRows.Add(row);
+    }
+
     private void FilterKalkyl()
     {
-        if (string.IsNullOrWhiteSpace(FilterText))
-        {
-            FilteredKalkylPoster = new ObservableCollection<LubeKalkylPost>(KalkylPoster);
-            return;
-        }
-
-        var q = FilterText.Trim().ToLowerInvariant();
-        var list = KalkylPoster.Where(x =>
-            (x.Kod?.ToLowerInvariant().Contains(q) ?? false) ||
-            (x.Benamning?.ToLowerInvariant().Contains(q) ?? false)).ToList();
-
-        FilteredKalkylPoster = new ObservableCollection<LubeKalkylPost>(list);
+        FilteredKalkylPoster = string.IsNullOrWhiteSpace(FilterText)
+            ? new ObservableCollection<LubeKalkylPost>(KalkylPoster)
+            : new ObservableCollection<LubeKalkylPost>(KalkylPoster.Where(MatchesFilter));
+        OnPropertyChanged(nameof(SumTotalMaterial));
+        OnPropertyChanged(nameof(SumTotalTimmar));
     }
 
     private void FilterSakvaror()
     {
-        if (string.IsNullOrWhiteSpace(FilterText))
+        FilteredSakvaror = string.IsNullOrWhiteSpace(FilterText)
+            ? new ObservableCollection<LubeSakvaraMangd>(SakvarorMangder)
+            : new ObservableCollection<LubeSakvaraMangd>(SakvarorMangder.Where(MatchesFilter));
+        RefreshSpecificationRows();
+    }
+
+    private static string GetPackageQuoteReference(LubeSakvaraOffert quote)
+        => string.IsNullOrWhiteSpace(quote.Produktgrupp)
+            ? $"#{quote.Id}"
+            : $"{quote.Produktgrupp} (#{quote.Id})";
+
+    private void RefreshSpecificationRows()
+    {
+        var rows = FilteredSakvaror.ToList();
+        var visibleQuoteIds = rows.Where(row => row.HasPackageQuote)
+            .Select(row => row.PackageQuoteId!.Value).ToHashSet();
+
+        foreach (var quote in PackageQuotes)
         {
-            FilteredSakvaror = new ObservableCollection<LubeSakvaraMangd>(SakvarorMangder);
-            return;
+            var summary = new LubeSakvaraMangd
+            {
+                IsQuoteSummaryRow = true,
+                SummaryQuoteId = quote.Id,
+                ProjectId = Project.Id,
+                Grupp = "Offert",
+                Beteckning = $"Offert {GetPackageQuoteReference(quote)}",
+                Produkt = "Paketoffert – sammanställning",
+                Leverantor = quote.Leverantor,
+                Antal = 1,
+                Enhet = "paket",
+                PrisNto = GetCalculatedQuoteNetAmount(quote.Id),
+                Offertpris = quote.OffereratPris,
+                Slutpris = quote.EffectiveAmount,
+                Anteckningar = quote.Kommentar ?? string.Empty
+            };
+            if (string.IsNullOrWhiteSpace(FilterText) || visibleQuoteIds.Contains(quote.Id) || MatchesFilter(summary))
+                rows.Add(summary);
         }
 
-        var q = FilterText.Trim().ToLowerInvariant();
-        var list = SakvarorMangder.Where(x =>
-            (x.Beteckning?.ToLowerInvariant().Contains(q) ?? false) ||
-            (x.Grupp?.ToLowerInvariant().Contains(q) ?? false) ||
-            (x.Produkt?.ToLowerInvariant().Contains(q) ?? false) ||
-            (x.Produktkod?.ToLowerInvariant().Contains(q) ?? false) ||
-            (x.Leverantor?.ToLowerInvariant().Contains(q) ?? false)).ToList();
+        // Preserve the actual article instances and their selection; summaries
+        // exist only in this view collection, never in SakvarorMangder.
+        var desired = rows.ToHashSet();
+        for (var index = SpecificationRows.Count - 1; index >= 0; index--)
+            if (!desired.Contains(SpecificationRows[index]))
+                SpecificationRows.RemoveAt(index);
 
-        FilteredSakvaror = new ObservableCollection<LubeSakvaraMangd>(list);
+        for (var index = 0; index < rows.Count; index++)
+        {
+            if (index < SpecificationRows.Count && ReferenceEquals(SpecificationRows[index], rows[index]))
+                continue;
+            var previousIndex = SpecificationRows.IndexOf(rows[index]);
+            if (previousIndex >= 0)
+                SpecificationRows.Move(previousIndex, index);
+            else
+                SpecificationRows.Insert(index, rows[index]);
+        }
     }
 
-    private void CalculateTotals()
+    private bool MatchesFilter(LubeKalkylPost item)
+        => ContainsFilter(item.Kod) || ContainsFilter(item.Benamning);
+
+    private bool MatchesFilter(LubeSakvaraMangd item)
+        => ContainsFilter(item.Beteckning) || ContainsFilter(item.Produkt) || ContainsFilter(item.Produktkod)
+            || ContainsFilter(item.Leverantor) || ContainsFilter(item.Grupp) || ContainsFilter(item.PackageQuoteLabel);
+
+    private bool ContainsFilter(string? value)
+        => !string.IsNullOrWhiteSpace(value)
+            && value.Contains(FilterText.Trim(), StringComparison.CurrentCultureIgnoreCase);
+
+    private void NotifyQuoteTotals()
     {
-        SumTotalMaterial = KalkylPoster.Sum(x => x.TotaltMaterial);
-        SumTotalTimmar = KalkylPoster.Sum(x => x.TotaltMontageTimmar);
-        OnPropertyChanged(nameof(Outcome));
+        OnPropertyChanged(nameof(SumPrisNto));
+        OnPropertyChanged(nameof(SumOffertpris));
+        OnPropertyChanged(nameof(SumSlutpris));
+        OnPropertyChanged(nameof(SumDifferens));
+        OnPropertyChanged(nameof(UnlinkedRows));
+        OnPropertyChanged(nameof(PackageQuotes));
     }
 
-    public async Task SaveSakvaraPricesAsync(LubeSakvaraMangd item)
+    private void UpdateSpecificationOutcome()
     {
+        if (_updatingSpecificationOutcome) return;
+        var hasSpecification = SakvarorMangder.Count > 0 || PackageQuotes.Any();
+        var wasManaged = Summary.ReportSections.SelectMany(section => section.Rows)
+            .Any(row => row.Label.Trim().Equals("Sakvaror", StringComparison.OrdinalIgnoreCase)
+                && row.List == "Specifikation");
+        if (!hasSpecification && !wasManaged) return;
+        _updatingSpecificationOutcome = true;
         try
         {
-            await _dataService.Projects.UpdateSakvaraPricesAsync(item);
-        }
-        catch (Exception ex)
-        {
-            _dialogService.ShowError($"Kunde inte spara priset: {ex.Message}", "Sparfel");
-        }
-    }
-
-    [RelayCommand]
-    private async Task MarkeraKoptAsync(LubeSakvaraMangd? item)
-    {
-        if (item == null)
-            return;
-
-        item.ArKopt = !item.ArKopt;
-        await SaveSakvaraPricesAsync(item);
-    }
-
-    [RelayCommand]
-    private async Task ImportLubeExcelAsync()
-    {
-        var filePath = _dialogService.OpenFileDialog(
-            "Excel-filer (*.xlsx;*.xls)|*.xlsx;*.xls|Alla filer (*.*)|*.*",
-            "Välj Lube-kalkylfil");
-
-        if (string.IsNullOrEmpty(filePath)) return;
-
-        IsImporting = true;
-        try
-        {
-            var res = await _lubeImportService.ImportAsync(filePath);
-            if (!res.Success)
-            {
-                _dialogService.ShowError(res.ErrorMessage ?? "Misslyckades att importera Lube-filen.", "Importfel");
-                return;
-            }
-
-            // Spara i databasen
-            await _summarySaveLock.WaitAsync();
-            try
-            {
-                await _dataService.Projects.SaveLubeCalculationDataAsync(
-                    Project.Id,
-                    res.KalkylPoster,
-                    res.Anpassningar,
-                    res.SakvarorMangder,
-                    res.SakvarorOfferter,
-                    res.SakvarorLeveranspriser,
-                    res.SakvarorMontagePoster,
-                    res.EjMangdbaseradePoster,
-                    res.Summary);
-                Summary = res.Summary;
-                Project.LubeSummaryJson = JsonSerializer.Serialize(res.Summary);
-            }
-            finally
-            {
-                _summarySaveLock.Release();
-            }
-
-            // Uppdatera lokalt
-            KalkylPoster = new ObservableCollection<LubeKalkylPost>(res.KalkylPoster);
-            Projektanpassningar = new ObservableCollection<LubeProjektanpassningPost>(res.Anpassningar);
-            SakvarorMangder = new ObservableCollection<LubeSakvaraMangd>(res.SakvarorMangder);
-            SakvarorOfferter = new ObservableCollection<LubeSakvaraOffert>(res.SakvarorOfferter);
-            SakvarorLeveranspriser = new ObservableCollection<LubeSakvaraLeveranspris>(res.SakvarorLeveranspriser);
-            SakvarorMontage = new ObservableCollection<LubeSakvaraMontage>(res.SakvarorMontagePoster);
-            EjMangdbaserade = new ObservableCollection<LubeEjMangdbaserad>(res.EjMangdbaseradePoster);
-
-            LubeProjektNummer = res.ProjektNummer ?? Project.ProjectNumber;
-            LubePdelRitning = res.PdelRitning ?? "Alla";
-            LubeHandling = res.Handling ?? "Alla h";
-            LubeDatum = res.Datum ?? DateTime.Now.ToString("yyyy-MM-dd");
-
-            FilterKalkyl();
-            FilterSakvaror();
-            CalculateTotals();
-
-            _dialogService.ShowMessage($"Lube-kalkylen har importerats framgångsrikt!\nAntal kalkylrader: {res.KalkylPoster.Count}\nSakvaror mängder: {res.SakvarorMangder.Count}\nMontageposter: {res.SakvarorMontagePoster.Count}", "Import slutförd");
-        }
-        catch (Exception ex)
-        {
-            _dialogService.ShowError($"Oväntat fel: {ex.Message}", "Importfel");
+            Summary.ApplySpecificationOutcome(SumSlutpris);
         }
         finally
         {
-            IsImporting = false;
+            _updatingSpecificationOutcome = false;
+        }
+        OnPropertyChanged(nameof(Outcome));
+    }
+
+    private void LoadFromProject(Project project)
+    {
+        Project = project;
+        KalkylPoster = new ObservableCollection<LubeKalkylPost>(project.LubeKalkylPoster ?? []);
+        Projektanpassningar = new ObservableCollection<LubeProjektanpassningPost>(project.LubeProjektanpassningar ?? []);
+        SakvarorOfferter = new ObservableCollection<LubeSakvaraOffert>(project.LubeSakvarorOfferter ?? []);
+        SakvarorMangder = new ObservableCollection<LubeSakvaraMangd>(project.LubeSakvarorMangder ?? []);
+        SakvarorLeveranspriser = new ObservableCollection<LubeSakvaraLeveranspris>(project.LubeSakvarorLeveranspriser ?? []);
+        SakvarorMontage = new ObservableCollection<LubeSakvaraMontage>(project.LubeSakvarorMontagePoster ?? []);
+        EjMangdbaserade = new ObservableCollection<LubeEjMangdbaserad>(project.LubeEjMangdbaseradePoster ?? []);
+        LubeProjektNummer = project.ProjectNumber;
+        Summary = LoadSummary(project.LubeSummaryJson);
+        FilterKalkyl();
+        FilterSakvaror();
+        RefreshAtaSummary();
+        RefreshPackageQuoteLabels();
+        OnPropertyChanged(nameof(SumTotalMaterial));
+        OnPropertyChanged(nameof(SumTotalTimmar));
+        OnPropertyChanged(nameof(Outcome));
+    }
+
+    private static LubeCalculationSummary LoadSummary(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return new LubeCalculationSummary();
+        try
+        {
+            return JsonSerializer.Deserialize<LubeCalculationSummary>(json) ?? new LubeCalculationSummary();
+        }
+        catch (JsonException)
+        {
+            return new LubeCalculationSummary();
+        }
+    }
+
+    private LubeTabOption CreateTab(string key, string title, bool canHide)
+    {
+        var hidden = _settingsService.LoadSettings().HiddenLubeTabs
+            .Contains(key, StringComparer.OrdinalIgnoreCase);
+        var option = new LubeTabOption(key, title, canHide, !hidden, OnTabVisibilityChanged);
+        TabOptions.Add(option);
+        return option;
+    }
+
+    private void OnTabVisibilityChanged(LubeTabOption option)
+    {
+        var settings = _settingsService.LoadSettings();
+        settings.HiddenLubeTabs = TabOptions
+            .Where(tab => tab.CanHide && !tab.IsVisible)
+            .Select(tab => tab.Key)
+            .ToList();
+        _settingsService.SaveSettings(settings);
+        if (SelectedLubeTabIndex >= 0 && SelectedLubeTabIndex < TabOptions.Count && !TabOptions[SelectedLubeTabIndex].IsVisible)
+            SelectedLubeTabIndex = 0;
+    }
+
+    [RelayCommand]
+    public async Task CreateQuoteForArticlesAsync(IReadOnlyList<LubeSakvaraMangd> articles)
+    {
+        if (articles.Count == 0) return;
+        if (articles.Any(a => a.Id == 0))
+        {
+            _dialogService.ShowError("En eller flera av de valda artiklarna är inte sparade. Spara artiklarna innan du skapar en offert.", "Offert");
+            return;
+        }
+
+        var distinctArticles = articles.Distinct().ToArray();
+        var dialog = new LinkQuoteDialogViewModel(distinctArticles);
+        var quoteWindow = new LinkQuoteDialog(dialog);
+        if (System.Windows.Application.Current?.MainWindow is { } owner)
+            quoteWindow.Owner = owner;
+        if (quoteWindow.ShowDialog() != true) return;
+
+        var quote = new LubeSakvaraOffert
+        {
+            ProjectId = Project.Id,
+            Leverantor = dialog.Supplier.Trim(),
+            Produktgrupp = string.IsNullOrWhiteSpace(dialog.QuoteNumber)
+                ? $"Paketoffert {dialog.Supplier}".Trim()
+                : dialog.QuoteNumber.Trim(),
+            OffereratPris = dialog.QuotedAmount,
+            FinalAmount = dialog.FinalAmount,
+            QuoteDate = dialog.QuoteDate,
+            FilePath = dialog.FilePath,
+            IsPackageQuote = true,
+            Kommentar = string.Join(", ", distinctArticles.Select(r => r.Beteckning).Where(s => !string.IsNullOrWhiteSpace(s)))
+        };
+
+        try
+        {
+            await _dataService.Projects.SavePackageQuoteAsync(quote, distinctArticles.Select(r => r.Id).ToArray());
+            if (SakvarorOfferter.All(q => q.Id != quote.Id))
+                SakvarorOfferter.Add(quote);
+            foreach (var row in distinctArticles)
+            {
+                row.PackageQuoteId = quote.Id;
+                if (string.IsNullOrWhiteSpace(row.Leverantor))
+                    row.Leverantor = quote.Leverantor;
+            }
+            RefreshPackageQuoteLabels();
+        }
+        catch (Exception ex)
+        {
+            _dialogService.ShowError($"Kunde inte spara offerten: {ex.Message}", "Offert");
+        }
+    }
+
+    public async Task AddArticlesToQuoteAsync(int quoteId, IReadOnlyList<LubeSakvaraMangd> articles)
+    {
+        if (articles.Count == 0) return;
+        if (articles.Any(a => a.Id == 0))
+        {
+            _dialogService.ShowError("En eller flera av de valda artiklarna är inte sparade. Spara artiklarna innan du lägger till dem i offerten.", "Offert");
+            return;
+        }
+
+        var existingQuote = SakvarorOfferter.FirstOrDefault(q => q.Id == quoteId);
+        if (existingQuote == null)
+        {
+            _dialogService.ShowError("Den angivna offerten kunde inte hittas.", "Offert");
+            return;
+        }
+
+        if (articles.Any(r => r.HasPackageQuote && r.PackageQuoteId != quoteId) &&
+            !_dialogService.Confirm("En eller flera artiklar ingår redan i en annan offert. Vill du flytta dem till den valda offerten?", "Offert"))
+            return;
+
+        var articleIds = articles.Select(a => a.Id).ToArray();
+        try
+        {
+            await _dataService.Projects.SavePackageQuoteAsync(existingQuote, articleIds);
+            foreach (var row in articles)
+            {
+                row.PackageQuoteId = quoteId;
+                if (string.IsNullOrWhiteSpace(row.Leverantor))
+                    row.Leverantor = existingQuote.Leverantor;
+            }
+            RefreshPackageQuoteLabels();
+        }
+        catch (Exception ex)
+        {
+            _dialogService.ShowError($"Kunde inte uppdatera offerten: {ex.Message}", "Offert");
+        }
+    }
+
+    public async Task RemoveArticlesFromQuoteAsync(IReadOnlyList<LubeSakvaraMangd> articles)
+    {
+        if (articles.Count == 0) return;
+
+        var articleIds = articles.Select(a => a.Id).ToArray();
+        try
+        {
+            await _dataService.Projects.SetArticleQuoteLinksAsync(Project.Id, articleIds, null);
+            foreach (var row in articles)
+                row.PackageQuoteId = null;
+            RefreshPackageQuoteLabels();
+        }
+        catch (Exception ex)
+        {
+            _dialogService.ShowError($"Kunde inte ta bort artiklarna från offerten: {ex.Message}", "Offert");
         }
     }
 }

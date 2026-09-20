@@ -1,0 +1,217 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:converters="clr-namespace:UmiaPP.Converters">
+    <!-- Shared control styles. Theme dictionaries loaded later supply the palette. -->
+    <converters:UppercaseHeaderConverter x:Key="UppercaseHeaderConverter"/>
+    <converters:FileNameDisplayConverter x:Key="FileNameDisplayConverter"/>
+    <SolidColorBrush x:Key="HeaderBackgroundBrush" Color="#F3F4F6"/>
+    <SolidColorBrush x:Key="RowHoverBrush" Color="#F3F4F6"/>
+    <SolidColorBrush x:Key="SelectionBrush" Color="#EBF5FF"/>
+    <SolidColorBrush x:Key="SelectionTextBrush" Color="#0F172A"/>
+    <SolidColorBrush x:Key="DangerTintBrush" Color="#FEF2F2"/>
+    <SolidColorBrush x:Key="QuoteSummaryBrush" Color="#FFFBEB"/>
+    <SolidColorBrush x:Key="FocusBrush" Color="#2563EB"/>
+    <SolidColorBrush x:Key="CostIncreaseIndicatorBrush" Color="{DynamicResource DangerColor}"/>
+    <SolidColorBrush x:Key="CostSavingIndicatorBrush" Color="{DynamicResource SuccessColor}"/>
+    <DropShadowEffect x:Key="CardShadow" BlurRadius="5" Direction="270" ShadowDepth="1" Opacity="0.05" Color="Black"/>
+
+    <Style x:Key="KeyboardFocusVisual" TargetType="Control">
+        <Setter Property="Template">
+            <Setter.Value><ControlTemplate TargetType="Control">
+                <Rectangle Margin="-3" Stroke="{DynamicResource FocusBrush}" StrokeThickness="2" StrokeDashArray="2,2" RadiusX="8" RadiusY="8"/>
+            </ControlTemplate></Setter.Value>
+        </Setter>
+    </Style>
+    <Style TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Segoe UI Variable, Segoe UI"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+    </Style>
+    <Style TargetType="UserControl">
+        <Setter Property="FontFamily" Value="Segoe UI Variable, Segoe UI"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+    </Style>
+    <Style x:Key="ModernButtonBase" TargetType="Button">
+        <Setter Property="FontFamily" Value="Segoe UI Variable, Segoe UI"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Padding" Value="14,9"/>
+        <Setter Property="MinHeight" Value="36"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource KeyboardFocusVisual}"/>
+        <Setter Property="Template">
+            <Setter.Value><ControlTemplate TargetType="Button">
+                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True"/>
+                </Border>
+            </ControlTemplate></Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.45"/><Setter Property="Cursor" Value="Arrow"/></Trigger>
+            <Trigger Property="IsPressed" Value="True"><Setter Property="Opacity" Value="0.8"/></Trigger>
+        </Style.Triggers>
+    </Style>
+    <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource ModernButtonBase}">
+        <Setter Property="Background" Value="{DynamicResource PrimaryBrush}"/><Setter Property="Foreground" Value="White"/>
+        <Style.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource PrimaryHoverBrush}"/></Trigger></Style.Triggers>
+    </Style>
+    <Style x:Key="AccentButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}"/>
+    <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource ModernButtonBase}">
+        <Setter Property="Background" Value="{DynamicResource HeaderBackgroundBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+        <Style.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource RowHoverBrush}"/></Trigger></Style.Triggers>
+    </Style>
+    <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource ModernButtonBase}">
+        <Setter Property="Background" Value="{DynamicResource DangerTintBrush}"/><Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+        <Style.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource DangerHoverBrush}"/><Setter Property="Foreground" Value="White"/></Trigger></Style.Triggers>
+    </Style>
+    <Style x:Key="IconButton" TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+        <Setter Property="Padding" Value="8"/><Setter Property="MinWidth" Value="36"/>
+    </Style>
+    <Style x:Key="BreadcrumbButton" TargetType="Button" BasedOn="{StaticResource ModernButtonBase}">
+        <Setter Property="Background" Value="Transparent"/><Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+        <Setter Property="Padding" Value="4,6"/><Setter Property="MinHeight" Value="28"/>
+        <Style.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource RowHoverBrush}"/><Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/></Trigger></Style.Triggers>
+    </Style>
+    <Style x:Key="ModernCard" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/><Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="Padding" Value="20"/><Setter Property="Effect" Value="{StaticResource CardShadow}"/>
+    </Style>
+    <Style x:Key="KpiIcon" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Segoe UI Symbol"/><Setter Property="FontSize" Value="22"/>
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/><Setter Property="Margin" Value="0,0,0,10"/>
+    </Style>
+    <Style x:Key="NumericCellText" TargetType="TextBlock">
+        <Setter Property="TextAlignment" Value="Right"/><Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="VerticalAlignment" Value="Center"/><Setter Property="Margin" Value="8,0"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+    </Style>
+    <Style x:Key="NumericCellEdit" TargetType="TextBox">
+        <Setter Property="HorizontalContentAlignment" Value="Right"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+    </Style>
+    <Style x:Key="QuotedPriceText" TargetType="TextBlock" BasedOn="{StaticResource NumericCellText}">
+        <Style.Triggers><DataTrigger Binding="{Binding IsOffertprisFallback}" Value="True"><Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/></DataTrigger></Style.Triggers>
+    </Style>
+    <Style x:Key="FinalPriceText" TargetType="TextBlock" BasedOn="{StaticResource NumericCellText}">
+        <Style.Triggers><DataTrigger Binding="{Binding IsSlutprisFallback}" Value="True"><Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/></DataTrigger></Style.Triggers>
+    </Style>
+    <Style x:Key="ModernGridRow" TargetType="DataGridRow">
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="MinHeight" Value="38"/><Setter Property="BorderThickness" Value="0"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource RowHoverBrush}"/></Trigger>
+            <Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="{DynamicResource SelectionBrush}"/><Setter Property="Foreground" Value="{DynamicResource SelectionTextBrush}"/></Trigger>
+        </Style.Triggers>
+    </Style>
+    <Style x:Key="ModernGridCell" TargetType="DataGridCell">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/><Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="Padding" Value="8,5"/>
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="DataGridCell">
+            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
+                <ContentPresenter VerticalAlignment="Center" SnapsToDevicePixels="True"/>
+            </Border>
+        </ControlTemplate></Setter.Value></Setter>
+        <Style.Triggers>
+            <Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="{DynamicResource SelectionBrush}"/><Setter Property="Foreground" Value="{DynamicResource SelectionTextBrush}"/></Trigger>
+            <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter Property="BorderBrush" Value="{DynamicResource FocusBrush}"/></Trigger>
+        </Style.Triggers>
+    </Style>
+    <Style x:Key="ModernGridHeader" TargetType="DataGridColumnHeader">
+        <Setter Property="Background" Value="{DynamicResource HeaderBackgroundBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+        <Setter Property="FontSize" Value="12"/><Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Padding" Value="10,10"/><Setter Property="MinHeight" Value="38"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/><Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="ContentTemplate"><Setter.Value><DataTemplate>
+            <ContentPresenter Content="{Binding Converter={StaticResource UppercaseHeaderConverter}}"/>
+        </DataTemplate></Setter.Value></Setter>
+    </Style>
+    <Style TargetType="DataGridRow" BasedOn="{StaticResource ModernGridRow}"/>
+    <Style TargetType="DataGridCell" BasedOn="{StaticResource ModernGridCell}"/>
+    <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource ModernGridHeader}"/>
+    <Style x:Key="ModernDataGrid" TargetType="DataGrid">
+        <Setter Property="FontFamily" Value="Segoe UI Variable, Segoe UI"/><Setter Property="FontSize" Value="13"/>
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/><Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/><Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="RowBackground" Value="{DynamicResource SurfaceBrush}"/><Setter Property="AlternatingRowBackground" Value="{DynamicResource SurfaceBrush}"/>
+        <Setter Property="GridLinesVisibility" Value="Horizontal"/><Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource BorderBrush}"/>
+        <Setter Property="VerticalGridLinesBrush" Value="Transparent"/><Setter Property="HeadersVisibility" Value="Column"/>
+        <Setter Property="AutoGenerateColumns" Value="False"/><Setter Property="CanUserAddRows" Value="False"/><Setter Property="CanUserDeleteRows" Value="False"/>
+        <Setter Property="MinRowHeight" Value="38"/><Setter Property="RowHeight" Value="NaN"/><Setter Property="ColumnHeaderHeight" Value="NaN"/>
+        <Setter Property="EnableRowVirtualization" Value="True"/><Setter Property="EnableColumnVirtualization" Value="True"/>
+        <Setter Property="RowStyle" Value="{StaticResource ModernGridRow}"/><Setter Property="CellStyle" Value="{StaticResource ModernGridCell}"/>
+        <Setter Property="ColumnHeaderStyle" Value="{StaticResource ModernGridHeader}"/>
+    </Style>
+    <Style TargetType="DataGrid" BasedOn="{StaticResource ModernDataGrid}"/>
+    <Style x:Key="SearchTextBox" TargetType="TextBox">
+        <Setter Property="FontSize" Value="13"/><Setter Property="MinHeight" Value="38"/>
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/><Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/><Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox">
+            <Border x:Name="SearchBorder" CornerRadius="8" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="36"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                    <ScrollViewer x:Name="PART_ContentHost" Grid.Column="1" Margin="0,9,12,9" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="Watermark" Grid.Column="1" Text="{TemplateBinding Tag}" Margin="0,0,12,0" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" IsHitTestVisible="False" Visibility="Collapsed" TextTrimming="CharacterEllipsis"/>
+                </Grid>
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="Text" Value=""><Setter TargetName="Watermark" Property="Visibility" Value="Visible"/></Trigger>
+                <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="SearchBorder" Property="BorderBrush" Value="{DynamicResource FocusBrush}"/></Trigger>
+                <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.5"/></Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate></Setter.Value></Setter>
+    </Style>
+    <Style x:Key="MarginGauge" TargetType="ProgressBar">
+        <Setter Property="Height" Value="10"/><Setter Property="Minimum" Value="0"/><Setter Property="Maximum" Value="100"/>
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/><Setter Property="Background" Value="{DynamicResource HeaderBackgroundBrush}"/>
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ProgressBar">
+            <Grid x:Name="PART_Track">
+                <Border Background="{TemplateBinding Background}" CornerRadius="5"/>
+                <Border x:Name="PART_Indicator" HorizontalAlignment="Left" Background="{TemplateBinding Foreground}" CornerRadius="5"/>
+            </Grid>
+        </ControlTemplate></Setter.Value></Setter>
+    </Style>
+    <Style x:Key="SidebarTabItem" TargetType="TabItem">
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+        <Setter Property="Background" Value="Transparent"/><Setter Property="Padding" Value="14,12"/><Setter Property="Margin" Value="8,3"/>
+        <Setter Property="FontWeight" Value="SemiBold"/><Setter Property="FocusVisualStyle" Value="{StaticResource KeyboardFocusVisual}"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TabItem">
+            <Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                <ContentPresenter ContentSource="Header" RecognizesAccessKey="True" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+            </Border>
+        </ControlTemplate></Setter.Value></Setter>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource RowHoverBrush}"/></Trigger>
+            <Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="{DynamicResource SelectionBrush}"/><Setter Property="Foreground" Value="{DynamicResource SelectionTextBrush}"/></Trigger>
+        </Style.Triggers>
+    </Style>
+    <Style x:Key="SidebarTabControl" TargetType="TabControl">
+        <Setter Property="TabStripPlacement" Value="Left"/>
+        <Setter Property="ItemContainerStyle" Value="{StaticResource SidebarTabItem}"/>
+        <Setter Property="Background" Value="{DynamicResource BackgroundBrush}"/>
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TabControl">
+            <Grid KeyboardNavigation.TabNavigation="Local">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="190"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0" CornerRadius="8,0,0,8" Padding="0,8">
+                    <TabPanel IsItemsHost="True" KeyboardNavigation.TabIndex="1" VerticalAlignment="Top"/>
+                </Border>
+                <ContentPresenter x:Name="PART_SelectedContentHost" Grid.Column="1" ContentSource="SelectedContent" Margin="20,0,0,0" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+            </Grid>
+        </ControlTemplate></Setter.Value></Setter>
+    </Style>
+</ResourceDictionary>

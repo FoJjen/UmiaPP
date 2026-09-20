@@ -26,7 +26,7 @@ public class ThemeService : IThemeService
         var builtIn = new[] { "Light", "Dark", "Umia" };
 
         var custom = Directory.Exists(_appThemesFolder)
-            ? Directory.GetFiles(_appThemesFolder, "*.xaml").Select(Path.GetFileNameWithoutExtension)
+            ? Directory.GetFiles(_appThemesFolder, "*.xaml").Select(Path.GetFileNameWithoutExtension).OfType<string>()
             : Enumerable.Empty<string>();
 
         return builtIn.Concat(custom).Distinct();

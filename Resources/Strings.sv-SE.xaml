@@ -3,103 +3,108 @@
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
 
     <!-- App & Header -->
-    <sys:String x:Key="AppTitle">UmiaPP - Umia Projekt Portal</sys:String>
-    <sys:String x:Key="NoProjectSelected">-</sys:String>
-    <sys:String x:Key="BackToProjects">← Tillbaka</sys:String>
-    <sys:String x:Key="Settings">Inställningar</sys:String>
+    <sys:String x:Key="AppTitle">UmiaPP - Ventilationsentreprenad</sys:String>
+    <sys:String x:Key="NoProjectSelected">Inget projekt valt</sys:String>
+    <sys:String x:Key="BackToProjects">&#x2190; Tillbaka till projektlistan</sys:String>
+    <sys:String x:Key="Settings">Inst&#xE4;llningar</sys:String>
 
     <!-- Project List -->
-    <sys:String x:Key="ProjectsTitle">Projektöversikt</sys:String>
+    <sys:String x:Key="ProjectsTitle">Projekt&#xF6;versikt</sys:String>
     <sys:String x:Key="NewProject">Nytt projekt</sys:String>
     <sys:String x:Key="EditProject">Redigera projekt</sys:String>
-    <sys:String x:Key="DeleteProject">Radera</sys:String>
-    <sys:String x:Key="OpenProject">Öppna projekt</sys:String>
-    <sys:String x:Key="SearchPlaceholder">Sök projekt, nummer eller beställare...</sys:String>
+    <sys:String x:Key="DeleteProject">Ta bort</sys:String>
+    <sys:String x:Key="OpenProject">&#xD6;ppna projekt</sys:String>
+    <sys:String x:Key="SearchPlaceholder">S&#xF6;k projekt, nummer eller best&#xE4;llare...</sys:String>
     <sys:String x:Key="ProjectName">Projektnamn</sys:String>
     <sys:String x:Key="ProjectNumber">Projektnummer</sys:String>
-    <sys:String x:Key="Client">Beställare</sys:String>
+    <sys:String x:Key="Client">Best&#xE4;llare</sys:String>
     <sys:String x:Key="ContractType">Entreprenadform</sys:String>
-    <sys:String x:Key="Discipline">Teknikområde</sys:String>
+    <sys:String x:Key="Discipline">Disciplin</sys:String>
     <sys:String x:Key="Status">Status</sys:String>
-    <sys:String x:Key="CreatedDate">Skapat datum</sys:String>
-    <sys:String x:Key="Actions">Åtgärder</sys:String>
-    <sys:String x:Key="TotalProjects">Totalt antal projekt:</sys:String>
+    <sys:String x:Key="CreatedDate">Skapad</sys:String>
+    <sys:String x:Key="Actions">&#xC5;tg&#xE4;rder</sys:String>
+    <sys:String x:Key="TotalProjects">Antal projekt:</sys:String>
 
     <!-- Delete Confirmation -->
-    <sys:String x:Key="DeleteConfirmTitle">Bekräfta radering</sys:String>
-    <sys:String x:Key="DeleteConfirmMessage">Är du säker på att du vill radera projektet {0}? Åtgärden går inte att ångra.</sys:String>
+    <sys:String x:Key="DeleteConfirmTitle">Bekr&#xE4;fta borttagning</sys:String>
+    <sys:String x:Key="DeleteConfirmMessage">Vill du ta bort projektet {0}? Detta kan inte &#xE5;ngras.</sys:String>
 
     <!-- Tabs -->
-    <sys:String x:Key="TabOverview">Översikt</sys:String>
+    <sys:String x:Key="TabOverview">&#xD6;versikt</sys:String>
     <sys:String x:Key="TabLube">Projektkalkyl (Lube)</sys:String>
-    <sys:String x:Key="TabPurchase">Inköp</sys:String>
-    <sys:String x:Key="TabAta">ÄTA</sys:String>
+    <sys:String x:Key="TabPurchase">Ink&#xF6;p</sys:String>
+    <sys:String x:Key="TabAta">&#xC4;TA</sys:String>
     <sys:String x:Key="TabInspection">Egenkontroll</sys:String>
 
     <!-- Overview Tab -->
-    <sys:String x:Key="SalesCalculation">Försäljningskalkyl</sys:String>
-    <sys:String x:Key="SalesPrice">Försäljningspris (kr)</sys:String>
-    <sys:String x:Key="BudgetedCost">Budgeterad kostnad totalt (kr)</sys:String>
-    <sys:String x:Key="SaveSalesCalculation">Spara försäljningskalkyl</sys:String>
-    <sys:String x:Key="SalesInputHelp">Ange två belopp utan tusentalsavgränsare, minst 0. Använd samma momsgrund som Lube-kalkylen. Klicka på Spara för att uppdatera TG.</sys:String>
-    <sys:String x:Key="CurrentTg">Aktuellt TG</sys:String>
-    <sys:String x:Key="TgBasis">TG = (sparat försäljningspris − Lube produktionskostnad) / försäljningspris × 100. Budgetkostnaden används inte i aktuellt TG. — visas när försäljningspris eller kalkyl saknas.</sys:String>
-    <sys:String x:Key="LubeProductionCost">Lube produktionskostnad (kr)</sys:String>
-    <sys:String x:Key="OverviewHeading">Projektstatus &amp; Nyckeltal</sys:String>
+    <sys:String x:Key="SalesCalculation">F&#xF6;rs&#xE4;ljningskalkyl</sys:String>
+    <sys:String x:Key="SalesPrice">F&#xF6;rs&#xE4;ljningspris (SEK)</sys:String>
+    <sys:String x:Key="BudgetedCost">Total budgeterad kostnad (SEK)</sys:String>
+    <sys:String x:Key="SaveSalesCalculation">Spara f&#xF6;rs&#xE4;ljningskalkyl</sys:String>
+    <sys:String x:Key="SalesInputHelp">Ange tv&#xE5; belopp utan tusentalsavgr&#xE4;nsare, minst 0. Anv&#xE4;nd samma momsgrund som i Lubekalkylen. Klicka p&#xE5; Spara f&#xF6;r att uppdatera TG.</sys:String>
+    <sys:String x:Key="CurrentTg">Aktuell TG</sys:String>
+    <sys:String x:Key="TgBasis">TG = (sparat f&#xF6;rs&#xE4;ljningspris &#x2212; Lube produktionskostnad) / f&#xF6;rs&#xE4;ljningspris &#xD7; 100. Budgeterad kostnad anv&#xE4;nds inte i aktuell TG. &#x2014; anger att f&#xF6;rs&#xE4;ljningspris eller kalkyl saknas.</sys:String>
+    <sys:String x:Key="LubeProductionCost">Lube produktionskostnad (SEK)</sys:String>
+    <sys:String x:Key="OverviewHeading">Projektstatus &amp; nyckeltal</sys:String>
     <sys:String x:Key="KeyMetrics">Nyckeltal</sys:String>
-    <sys:String x:Key="TotalHours">Kalkyltimmar:</sys:String>
+    <sys:String x:Key="TotalHours">Ber&#xE4;knade timmar:</sys:String>
     <sys:String x:Key="TotalMaterial">Materialkostnad:</sys:String>
     <sys:String x:Key="DrawingCount">Antal ritningar:</sys:String>
-    <sys:String x:Key="ComponentCount">Komponenter i inköp:</sys:String>
-    <sys:String x:Key="OverviewDescription">Översiktsvyn ger en snabb sammanställning av projektets kalkyler, ritningar och inköpsmängder. Ytterligare grafer och budgetuppföljning integreras här.</sys:String>
+    <sys:String x:Key="ComponentCount">Ink&#xF6;pta artiklar:</sys:String>
+    <sys:String x:Key="OverviewDescription">&#xD6;versikten ger en snabb sammanst&#xE4;llning av kalkylsummor, ritningar och ink&#xF6;psm&#xE4;ngder. H&#xE4;r kommer diagram och budgetuppf&#xF6;ljning att integreras fram&#xF6;ver.</sys:String>
 
     <!-- Lube Tab -->
-    <sys:String x:Key="ImportLubeBtn">Importera Lube-kalkyl (.xlsx/.xls)</sys:String>
+    <sys:String x:Key="ImportLubeBtn">Importera Lubekalkyl (.xlsx/.xls)</sys:String>
     <sys:String x:Key="SubTabSammandrag">Kalkylsammandrag (Lubekalk)</sys:String>
     <sys:String x:Key="SubTabSakvarorSpec">Sakvaror (Specifikation)</sys:String>
-    <sys:String x:Key="SubTabKalkyl">Kalkylblad (Rådata)</sys:String>
+    <sys:String x:Key="SubTabKalkyl">Kalkylblad (R&#xE5;data)</sys:String>
     <sys:String x:Key="SubTabAnpassning">Projektanpassning</sys:String>
-    <sys:String x:Key="SubTabSakvarorMangd">Sakvaror Mängder</sys:String>
-    <sys:String x:Key="SubTabSakvarorOffert">Sakvaror Offerter</sys:String>
+    <sys:String x:Key="SubTabSakvarorMangd">Sakvaror (M&#xE4;ngd)</sys:String>
+    <sys:String x:Key="SubTabSakvarorOffert">Sakvaror (Offert)</sys:String>
     <sys:String x:Key="SubTabSakvarorLeverans">Leveranspriser</sys:String>
-    <sys:String x:Key="SubTabSakvarorMontage">Montage &amp; Injustering</sys:String>
-    <sys:String x:Key="SubTabEjMangd">Ej mängdbaserade</sys:String>
+    <sys:String x:Key="SubTabSakvarorMontage">Montage &amp; drifts&#xE4;ttning</sys:String>
+    <sys:String x:Key="SubTabEjMangd">Ej m&#xE4;ngdade arbeten</sys:String>
     <sys:String x:Key="SumHours">Summa timmar:</sys:String>
     <sys:String x:Key="SumMaterial">Summa material:</sys:String>
     <sys:String x:Key="FilterPlaceholder">Filtrera rader...</sys:String>
     <sys:String x:Key="ChooseTabs">Flikar</sys:String>
-    <sys:String x:Key="ChooseTabsTitle">Visa flikar</sys:String>
-    <sys:String x:Key="ChooseTabsTooltip">Välj vilka flikar som ska visas</sys:String>
+    <sys:String x:Key="ChooseTabsTitle">Synliga flikar</sys:String>
+    <sys:String x:Key="ChooseTabsTooltip">V&#xE4;lj vilka flikar som ska visas</sys:String>
+    <sys:String x:Key="ChooseColumns">Kolumner</sys:String>
+    <sys:String x:Key="ChooseColumnsTooltip">V&#xE4;lj vilka kolumner som ska visas</sys:String>
+    <sys:String x:Key="ShowAllColumns">Visa alla kolumner</sys:String>
+    <sys:String x:Key="KeepOneColumnVisible">Minst en kolumn m&#xE5;ste visas.</sys:String>
+    <sys:String x:Key="ColumnLabelFormat">Kolumn {0}</sys:String>
 
     <!-- Purchase Tab -->
     <sys:String x:Key="SectionDrawings">Del 1: Ritningslista</sys:String>
-    <sys:String x:Key="AddDrawing">Lägg till ritning</sys:String>
-    <sys:String x:Key="OpenPdf">Öppna ritning</sys:String>
-    <sys:String x:Key="SectionComponents">Del 2: Komponentlista från PDF / Bluebeam Revu XML</sys:String>
-    <sys:String x:Key="LoadPdf">Ladda PDF</sys:String>
+    <sys:String x:Key="AddDrawing">L&#xE4;gg till ritning</sys:String>
+    <sys:String x:Key="OpenPdf">&#xD6;ppna ritning</sys:String>
+    <sys:String x:Key="SectionComponents">Del 2: Komponentlista fr&#xE5;n PDF / Bluebeam Revu XML</sys:String>
+    <sys:String x:Key="LoadPdf">L&#xE4;s in PDF</sys:String>
     <sys:String x:Key="NoPdfLoaded">Ingen PDF vald</sys:String>
     <sys:String x:Key="ImportBluebeamXml">Importera Bluebeam XML</sys:String>
     <sys:String x:Key="ExportExcel">Exportera till Excel</sys:String>
     <sys:String x:Key="ExportCsv">Exportera till CSV</sys:String>
-    <sys:String x:Key="TotalDuctMeters">Kanaler totalt:</sys:String>
-    <sys:String x:Key="TotalDetailsCount">Detaljer totalt:</sys:String>
-    <sys:String x:Key="TotalEquipmentCount">Sakvaror/Don totalt:</sys:String>
+    <sys:String x:Key="TotalDuctMeters">Summa kanaler:</sys:String>
+    <sys:String x:Key="TotalDetailsCount">Summa detaljer:</sys:String>
+    <sys:String x:Key="TotalEquipmentCount">Summa sakvaror/don:</sys:String>
 
     <!-- ATA Tab -->
-    <sys:String x:Key="AtaHeading">Ändrings- och Tilläggsarbeten (ÄTA)</sys:String>
-    <sys:String x:Key="AtaDescription">Funktionell placeholder-vy förberedd för registrering och uppföljning av ÄTA-poster, kravspecifikationer och godkända beställningar.</sys:String>
-    <sys:String x:Key="RegisterAta">Registrera ny ÄTA</sys:String>
+    <sys:String x:Key="AtaHeading">&#xC4;TA &amp; &#xE4;ndringshantering</sys:String>
+    <sys:String x:Key="AtaDescription">F&#xF6;rberedd vy f&#xF6;r registrering och uppf&#xF6;ljning av &#xE4;ndrings-, till&#xE4;ggs- och avg&#xE5;ende arbeten, &#xE4;ndringsspecifikationer och best&#xE4;llarens godk&#xE4;nnanden.</sys:String>
+    <sys:String x:Key="RegisterAta">Registrera ny &#xC4;TA</sys:String>
 
     <!-- Settings Dialog -->
-    <sys:String x:Key="SettingsTitle">Applikationsinställningar</sys:String>
-    <sys:String x:Key="LanguageLabel">Språk / Language:</sys:String>
+    <sys:String x:Key="SettingsTitle">Programinst&#xE4;llningar</sys:String>
+    <sys:String x:Key="LanguageLabel">Spr&#xE5;k / Language:</sys:String>
     <sys:String x:Key="Swedish">Svenska</sys:String>
     <sys:String x:Key="English">English</sys:String>
     <sys:String x:Key="DatabaseLabel">Databas:</sys:String>
     <sys:String x:Key="LocalSqlite">Lokal SQLite (UmiaPP.db)</sys:String>
-    <sys:String x:Key="CloudSyncStatus">Molnsynkronisering: Inaktiv (Förberedd)</sys:String>
+    <sys:String x:Key="CloudSyncStatus">Molnsynkronisering: Inaktiv (F&#xF6;rberedd)</sys:String>
     <sys:String x:Key="Save">Spara</sys:String>
     <sys:String x:Key="Cancel">Avbryt</sys:String>
-    <sys:String x:Key="Close">Stäng</sys:String>
+    <sys:String x:Key="Close">St&#xE4;ng</sys:String>
 
 </ResourceDictionary>
