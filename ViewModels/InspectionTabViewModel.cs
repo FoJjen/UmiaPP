@@ -132,6 +132,25 @@ public partial class InspectionTabViewModel : ObservableObject
 
     partial void OnSelectedDrawingChanged(Drawing? value) => _ = LoadChecklistAsync();
 
+    [RelayCommand]
+    private async Task MovePointUpAsync(InspectionTemplateChoice? choice) => await MovePointAsync(choice, -1);
+
+    [RelayCommand]
+    private async Task MovePointDownAsync(InspectionTemplateChoice? choice) => await MovePointAsync(choice, 1);
+
+    private async Task MovePointAsync(InspectionTemplateChoice? choice, int direction)
+    {
+        if (choice == null || SelectedDrawing == null) return;
+        var index = TemplateChoices.IndexOf(choice);
+        var target = index + direction;
+        if (index < 0 || target < 0 || target >= TemplateChoices.Count) return;
+
+        TemplateChoices.Move(index, target);
+        for (var i = 0; i < TemplateChoices.Count; i++)
+            TemplateChoices[i].Template.SortOrder = i + 1;
+        await SaveSelectedListAsync();
+    }
+
     private async Task LoadTemplatesAsync() => await LoadChecklistAsync();
 
     private async Task LoadChecklistAsync()
@@ -149,11 +168,11 @@ public partial class InspectionTabViewModel : ObservableObject
 
     private async Task ApplyTemplatesAsync(List<InspectionPointTemplate> templates)
     {
-        var includedIds = SelectedDrawing == null
+        var savedItems = SelectedDrawing == null
             ? []
-            : (await _dataService.Projects.GetDrawingInspectionItemsAsync(SelectedDrawing.Id))
-                .Select(item => item.TemplateId)
-                .ToHashSet();
+            : await _dataService.Projects.GetDrawingInspectionItemsAsync(SelectedDrawing.Id);
+        var includedIds = savedItems.Select(item => item.TemplateId).ToHashSet();
+        var savedOrder = savedItems.OrderBy(item => item.SortOrder).Select(item => item.TemplateId).ToList();
 
         _loadingChecklist = true;
         try
@@ -174,8 +193,16 @@ public partial class InspectionTabViewModel : ObservableObject
                 WorkDescription = header.Description;
                 SectionNumber = header.SectionNumber < 1 ? 1 : header.SectionNumber;
             }
+            var orderedTemplates = templates
+                .OrderBy(template =>
+                {
+                    var index = savedOrder.IndexOf(template.Id);
+                    return index < 0 ? int.MaxValue : index;
+                })
+                .ThenBy(template => template.SortOrder)
+                .ThenBy(template => template.Title);
             TemplateChoices = new ObservableCollection<InspectionTemplateChoice>(
-                templates.Select(template => new InspectionTemplateChoice(this, template, includedIds.Contains(template.Id))));
+                orderedTemplates.Select(template => new InspectionTemplateChoice(this, template, includedIds.Contains(template.Id))));
             ExportListCommand.NotifyCanExecuteChanged();
             Status = SelectedDrawing == null
                 ? "Skapa en egenkontrollista. Listorna är fristående från Inköp."

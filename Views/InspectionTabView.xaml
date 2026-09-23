@@ -83,6 +83,20 @@
                     </DataGridTemplateColumn>
                     <DataGridTextColumn Header="Checklista för egenkontroll" Binding="{Binding Template.Title, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="220"/>
                     <DataGridTextColumn Header="Krav/information" Binding="{Binding Template.Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
+                    <DataGridTemplateColumn Header="Ordning" Width="90">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <Button Content="↑" Width="28" Margin="0,0,4,0" ToolTip="Flytta upp"
+                                            Command="{Binding DataContext.MovePointUpCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}"/>
+                                    <Button Content="↓" Width="28" ToolTip="Flytta ned"
+                                            Command="{Binding DataContext.MovePointDownCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
                     <DataGridTemplateColumn Header="Åtgärder" Width="90">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>

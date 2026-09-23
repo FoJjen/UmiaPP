@@ -81,6 +81,13 @@ public partial class PurchaseTabView : UserControl
         }
     }
 
+    private void SelectAllLists_Click(object sender, System.Windows.RoutedEventArgs e)
+    {
+        if (DrawingsGrid == null || DrawingsGrid.Items.Count == 0) return;
+        DrawingsGrid.Focus();
+        DrawingsGrid.SelectAll();
+    }
+
     private void TextBox_TextChanged(object sender, TextChangedEventArgs e)
     {
 

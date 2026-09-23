@@ -62,8 +62,12 @@ public partial class LubeSakvaraMangd : ObservableObject
     }
 
     public bool HasOriginalArticleIdentity { get; set; }
+    public bool IsUserAdded { get; set; }
     public string OriginalProduktkod { get; set; } = string.Empty;
     public string OriginalLeverantor { get; set; } = string.Empty;
+
+    [NotMapped]
+    public bool CanEditAllFields => IsUserAdded && !IsQuoteSummaryRow;
 
     [NotMapped]
     public bool IsProduktkodChanged => HasOriginalArticleIdentity && Produktkod != OriginalProduktkod;

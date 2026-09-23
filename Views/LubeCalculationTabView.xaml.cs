@@ -22,11 +22,23 @@ public partial class LubeCalculationTabView : UserControl
     private void SakvarorGrid_Loaded(object sender, RoutedEventArgs e)
     {
         if (sender is DataGrid specificationGrid)
+        {
             AttachQuoteInteractions(specificationGrid);
+            UnlockUserEditableColumns(specificationGrid);
+        }
         if (sender is not DataGrid grid || grid.DataContext is not LubeCalculationTabViewModel viewModel)
             return;
         viewModel.SetSelectedSakvaror(grid.SelectedItems.OfType<LubeSakvaraMangd>());
         viewModel.RefreshPackageQuoteLabels();
+    }
+
+    private static void UnlockUserEditableColumns(DataGrid grid)
+    {
+        foreach (var column in grid.Columns)
+        {
+            if (IsImportedLockedColumn(column))
+                column.IsReadOnly = false;
+        }
     }
 
     private void SakvarorGrid_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
@@ -36,17 +48,55 @@ public partial class LubeCalculationTabView : UserControl
         viewModel.SetSelectedSakvaror(grid.SelectedItems.OfType<LubeSakvaraMangd>());
     }
 
+    private static readonly HashSet<string> ImportedLockedFields =
+    [
+        nameof(LubeSakvaraMangd.Grupp),
+        nameof(LubeSakvaraMangd.Beteckning),
+        nameof(LubeSakvaraMangd.Dim1),
+        nameof(LubeSakvaraMangd.Dim2),
+        nameof(LubeSakvaraMangd.Antal),
+        nameof(LubeSakvaraMangd.Enhet),
+        nameof(LubeSakvaraMangd.Produkt)
+    ];
+
     private void SakvarorGrid_BeginningEdit(object? sender, DataGridBeginningEditEventArgs e)
     {
-        if (e.Row.Item is LubeSakvaraMangd { IsQuoteSummaryRow: true })
+        if (e.Row.Item is not LubeSakvaraMangd article)
+            return;
+
+        if (article.IsQuoteSummaryRow)
+        {
             e.Cancel = true;
-        else if (e.Row.Item is LubeSakvaraMangd { HasOriginalArticleIdentity: false, Id: > 0 } article)
+            return;
+        }
+
+        if (!article.IsUserAdded &&
+            string.Equals(article.Beteckning, "Ny rad", StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(article.Produkt, "Ny rad", StringComparison.OrdinalIgnoreCase))
+            article.IsUserAdded = true;
+
+        if (!article.CanEditAllFields && IsImportedLockedColumn(e.Column))
+        {
+            e.Cancel = true;
+            return;
+        }
+
+        if (!article.HasOriginalArticleIdentity && article.Id > 0 && !article.IsUserAdded)
         {
             article.OriginalProduktkod = article.Produktkod;
             article.OriginalLeverantor = article.Leverantor;
             article.HasOriginalArticleIdentity = true;
             article.NotifyArticleIdentityChanged();
         }
+    }
+
+    private static bool IsImportedLockedColumn(DataGridColumn column)
+    {
+        var path = column.SortMemberPath;
+        if (string.IsNullOrWhiteSpace(path) && column is DataGridBoundColumn bound &&
+            bound.Binding is System.Windows.Data.Binding binding)
+            path = binding.Path?.Path;
+        return !string.IsNullOrWhiteSpace(path) && ImportedLockedFields.Contains(path);
     }
 
     private void SakvarorGrid_RowEditEnding(object? sender, DataGridRowEditEndingEventArgs e)

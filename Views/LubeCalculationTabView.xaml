@@ -118,17 +118,30 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
-                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-                    <Grid Grid.Row="0" ColumnSpan="3">
-                      <views:SakvaraActionsBar Grid.Row="0" SelectedArticles="{Binding SelectedItems, ElementName=SakvarorSpecificationGrid, Mode=OneWay}" TargetGrid="{Binding ElementName=SakvarorSpecificationGrid, Mode=OneWay}"/>
-                    </Grid>
-                    <DataGrid x:Name="SakvarorSpecificationGrid" Style="{StaticResource SakvaraReportGrid}" ItemsSource="{Binding SpecificationRows}" AutoGenerateColumns="False" IsReadOnly="False" CanUserAddRows="False" HeadersVisibility="Column" RowStyle="{StaticResource SakvaraRowStyle}" RowEditEnding="SakvarorGrid_RowEditEnding" SelectionMode="Extended" SelectionUnit="FullRow" Loaded="SakvarorGrid_Loaded" DataContextChanged="SakvarorGrid_DataContextChanged" Grid.Row="1" BeginningEdit="SakvarorGrid_BeginningEdit">
+                    <views:SakvaraActionsBar Grid.Row="0" Grid.ColumnSpan="3"
+                        SelectedArticles="{Binding SelectedItems, ElementName=SakvarorSpecificationGrid, Mode=OneWay}"
+                        TargetGrid="{Binding ElementName=SakvarorSpecificationGrid, Mode=OneWay}"/>
+                    <DataGrid x:Name="SakvarorSpecificationGrid" Grid.Row="1" Grid.ColumnSpan="3"
+                        Style="{StaticResource SakvaraReportGrid}"
+                        ItemsSource="{Binding SpecificationRows}"
+                        AutoGenerateColumns="False"
+                        IsReadOnly="False"
+                        CanUserAddRows="False"
+                        HeadersVisibility="Column"
+                        RowStyle="{StaticResource SakvaraRowStyle}"
+                        RowEditEnding="SakvarorGrid_RowEditEnding"
+                        SelectionMode="Extended"
+                        SelectionUnit="FullRow"
+                        Loaded="SakvarorGrid_Loaded"
+                        DataContextChanged="SakvarorGrid_DataContextChanged"
+                        BeginningEdit="SakvarorGrid_BeginningEdit"
+                        SelectionChanged="SakvarorGrid_SelectionChanged">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Grupp" Binding="{Binding Grupp}" Width="80" IsReadOnly="True"/>
                             <DataGridTextColumn Header="Beteckning-D1-D2" Binding="{Binding Beteckning}" Width="150" FontWeight="SemiBold" IsReadOnly="True"/>
@@ -234,7 +247,7 @@
             </TabItem>
             <TabItem Header="{DynamicResource SubTabSakvarorLeverans}" Visibility="{Binding LeveransTab.IsVisible, Converter={StaticResource BoolToVis}}">
                 <Grid Margin="12">
-                    <DataGrid Style="{StaticResource SakvaraReportGrid}" ItemsSource="{Binding FilteredSakvaror}" AutoGenerateColumns="False" IsReadOnly="False" CanUserAddRows="False" HeadersVisibility="Column" RowStyle="{StaticResource SakvaraRowStyle}" RowEditEnding="SakvarorGrid_RowEditEnding">
+                    <DataGrid Style="{StaticResource SakvaraReportGrid}" Margin="0" ItemsSource="{Binding SakvarorLeveranser}" AutoGenerateColumns="False" IsReadOnly="False">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Grupp" Binding="{Binding Grupp}" Width="80" IsReadOnly="True"/>
                             <DataGridTextColumn Header="Beteckning-D1-D2" Binding="{Binding Beteckning}" Width="150" FontWeight="SemiBold" IsReadOnly="True"/>

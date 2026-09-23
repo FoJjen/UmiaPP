@@ -43,6 +43,20 @@ public sealed class SakvaraActionsBar : StackPanel
         addRow.SetBinding(Button.CommandProperty,
             new Binding(nameof(LubeCalculationTabViewModel.AddSakvaraRowCommand)));
 
+        var deleteRow = new Button
+        {
+            Content = "Ta bort rad",
+            MinWidth = 110,
+            Margin = new Thickness(8, 0, 0, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+            ToolTip = "Ta bort markerade rader. Importerade rader tas också bort om de är markerade."
+        };
+        deleteRow.SetResourceReference(FrameworkElement.StyleProperty, "DangerButton");
+        deleteRow.SetBinding(Button.CommandProperty,
+            new Binding(nameof(LubeCalculationTabViewModel.DeleteSelectedSakvaraRowsCommand)));
+        deleteRow.SetBinding(Button.CommandParameterProperty,
+            new Binding(nameof(SelectedArticles)) { Source = this, Mode = BindingMode.OneWay });
+
         var linkQuote = new Button
         {
             Content = "Koppla till offert",
@@ -66,6 +80,7 @@ public sealed class SakvaraActionsBar : StackPanel
             new Binding(nameof(TargetGrid)) { Source = this, Mode = BindingMode.OneWay });
 
         Children.Add(addRow);
+        Children.Add(deleteRow);
         Children.Add(linkQuote);
         Children.Add(columns);
     }

@@ -50,13 +50,15 @@
                     </Grid>
                     <Grid>
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                        <TextBlock Text="Aktuell intäkt inkl. godkänd ÄTA" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,12,10" TextWrapping="Wrap"/>
-                        <TextBlock Grid.Column="1" Text="{Binding CurrentRevenue, StringFormat={}{0:N2} kr, TargetNullValue=—}" TextAlignment="Right"/>
-                        <TextBlock Grid.Row="1" Text="{DynamicResource LubeProductionCost}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,12,10" TextWrapping="Wrap"/>
-                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ProductionCost, StringFormat={}{0:N2} kr, TargetNullValue=—}" TextAlignment="Right"/>
-                        <TextBlock Grid.Row="2" Text="Aktuellt resultat" FontWeight="SemiBold" Margin="0,0,12,0"/>
-                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding CurrentProfit, StringFormat={}{0:N2} kr, TargetNullValue=—}" FontWeight="SemiBold" TextAlignment="Right"/>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <TextBlock Text="Intäkt godkänd ÄTA" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,12,10" TextWrapping="Wrap"/>
+                        <TextBlock Grid.Column="1" Text="{Binding ApprovedAtaRevenue, StringFormat={}{0:N2} kr, TargetNullValue=—}" TextAlignment="Right"/>
+                        <TextBlock Grid.Row="1" Text="Aktuell intäkt inkl. godkänd ÄTA" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,12,10" TextWrapping="Wrap"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding CurrentRevenue, StringFormat={}{0:N2} kr, TargetNullValue=—}" TextAlignment="Right"/>
+                        <TextBlock Grid.Row="2" Text="{DynamicResource LubeProductionCost}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,12,10" TextWrapping="Wrap"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ProductionCost, StringFormat={}{0:N2} kr, TargetNullValue=—}" TextAlignment="Right"/>
+                        <TextBlock Grid.Row="3" Text="Aktuellt resultat" FontWeight="SemiBold" Margin="0,0,12,0"/>
+                        <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding CurrentProfit, StringFormat={}{0:N2} kr, TargetNullValue=—}" FontWeight="SemiBold" TextAlignment="Right"/>
                     </Grid>
                     <Expander Header="Så beräknas TG" Margin="0,16,0,0" Foreground="{DynamicResource TextSecondaryBrush}">
                         <TextBlock Text="TG = (aktuell intäkt − aktuell kostnad) / aktuell intäkt × 100. Uppdateras direkt från Kalkylsammandragets utfall. Prisändringar förhandsvisas under redigering och sparas när raden bekräftas." TextWrapping="Wrap" Margin="0,8,0,0" Foreground="{DynamicResource TextSecondaryBrush}"/>

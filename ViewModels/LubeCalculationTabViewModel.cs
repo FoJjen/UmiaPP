@@ -134,6 +134,7 @@ public partial class LubeCalculationTabViewModel : ObservableObject
         MontageTab = CreateTab("montage", "Montage", true);
         EjMangdTab = CreateTab("ejmangd", "Ej mängdbaserade", true);
         LoadFromProject(project);
+        MarkLegacyUserAddedRows();
         RefreshPackageQuoteLabels();
     }
 
@@ -141,6 +142,7 @@ public partial class LubeCalculationTabViewModel : ObservableObject
     {
         Project = project;
         LoadFromProject(project);
+        MarkLegacyUserAddedRows();
     }
 
     public void RefreshAtaSummary()
@@ -169,6 +171,18 @@ public partial class LubeCalculationTabViewModel : ObservableObject
         SelectedSakvaror.Clear();
         foreach (var row in articles)
             SelectedSakvaror.Add(row);
+    }
+
+    private void MarkLegacyUserAddedRows()
+    {
+        foreach (var row in SakvarorMangder.Where(item =>
+                     !item.IsQuoteSummaryRow &&
+                     !item.IsUserAdded &&
+                     string.Equals(item.Beteckning, "Ny rad", StringComparison.OrdinalIgnoreCase) &&
+                     string.Equals(item.Produkt, "Ny rad", StringComparison.OrdinalIgnoreCase)))
+        {
+            row.IsUserAdded = true;
+        }
     }
 
     public void RefreshPackageQuoteLabels()
@@ -389,158 +403,14 @@ public partial class LubeCalculationTabViewModel : ObservableObject
         }
     }
 
-    [RelayCommand]
-    private async Task ToggleKoptAsync(LubeSakvaraMangd? item)
-    {
-        if (item == null || item.IsQuoteSummaryRow) return;
-        item.ArKopt = !item.ArKopt;
-        await SaveSakvaraSpecificationRowAsync(item);
-    }
-
-    [RelayCommand]
-    private async Task ImportLubeExcelAsync()
-    {
-        var path = _dialogService.OpenFileDialog(
-            "Excel-filer (*.xlsx;*.xls)|*.xlsx;*.xls|Alla filer (*.*)|*.*",
-            "Importera Lube-kalkyl");
-        if (string.IsNullOrWhiteSpace(path)) return;
-
-        IsImporting = true;
-        try
-        {
-            var result = await _lubeImportService.ImportAsync(path);
-            if (!result.Success)
-            {
-                _dialogService.ShowError(result.ErrorMessage ?? "Importen misslyckades.", "Import");
-                return;
-            }
-
-            LubeProjektNummer = result.ProjektNummer ?? Project.ProjectNumber;
-            LubePdelRitning = result.PdelRitning ?? string.Empty;
-            LubeHandling = result.Handling ?? string.Empty;
-            LubeDatum = result.Datum ?? string.Empty;
-
-            foreach (var row in result.KalkylPoster) row.ProjectId = Project.Id;
-            foreach (var row in result.Anpassningar) row.ProjectId = Project.Id;
-            foreach (var row in result.SakvarorMangder) row.ProjectId = Project.Id;
-            foreach (var row in result.SakvarorOfferter) row.ProjectId = Project.Id;
-            foreach (var row in result.SakvarorLeveranspriser) row.ProjectId = Project.Id;
-            foreach (var row in result.SakvarorMontagePoster) row.ProjectId = Project.Id;
-            foreach (var row in result.EjMangdbaseradePoster) row.ProjectId = Project.Id;
-
-            await _summarySaveLock.WaitAsync();
-            try
-            {
-                await _dataService.Projects.SaveLubeCalculationDataAsync(
-                    Project.Id,
-                    result.KalkylPoster,
-                    result.Anpassningar,
-                    result.SakvarorMangder,
-                    result.SakvarorOfferter,
-                    result.SakvarorLeveranspriser,
-                    result.SakvarorMontagePoster,
-                    result.EjMangdbaseradePoster,
-                    result.Summary);
-                var json = JsonSerializer.Serialize(result.Summary);
-                await _dataService.Projects.SaveLubeSummaryAsync(Project.Id, json);
-                Project.LubeSummaryJson = json;
-            }
-            finally
-            {
-                _summarySaveLock.Release();
-            }
-
-            var reloaded = await _dataService.Projects.GetByIdAsync(Project.Id) ?? Project;
-            LoadFromProject(reloaded);
-            _dialogService.ShowMessage("Lube-kalkylen har importerats.", "Import");
-        }
-        catch (Exception ex)
-        {
-            _dialogService.ShowError($"Kunde inte importera filen: {ex.Message}", "Import");
-        }
-        finally
-        {
-            IsImporting = false;
-        }
-    }
-
-    partial void OnSakvarorMangderChanged(ObservableCollection<LubeSakvaraMangd>? oldValue, ObservableCollection<LubeSakvaraMangd> newValue)
-    {
-        if (oldValue != null)
-        {
-            oldValue.CollectionChanged -= OnSakvarorCollectionChanged;
-            foreach (var row in oldValue)
-                row.PropertyChanged -= OnSakvaraPropertyChanged;
-        }
-
-        newValue.CollectionChanged += OnSakvarorCollectionChanged;
-        foreach (var row in newValue)
-            row.PropertyChanged += OnSakvaraPropertyChanged;
-        TrackTotalRows();
-        FilterSakvaror();
-        RefreshPackageQuoteLabels();
-    }
-
-    partial void OnFilterTextChanged(string value)
-    {
-        FilterKalkyl();
-        FilterSakvaror();
-    }
-
-    private void OnSakvarorCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
-    {
-        if (e.OldItems != null)
-            foreach (LubeSakvaraMangd row in e.OldItems)
-                row.PropertyChanged -= OnSakvaraPropertyChanged;
-        if (e.NewItems != null)
-            foreach (LubeSakvaraMangd row in e.NewItems)
-                row.PropertyChanged += OnSakvaraPropertyChanged;
-        TrackTotalRows();
-        FilterSakvaror();
-        RefreshSpecificationTotals();
-    }
-
-    private void OnSakvaraPropertyChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        if (e.PropertyName is nameof(LubeSakvaraMangd.PrisNto)
-            or nameof(LubeSakvaraMangd.Offertpris)
-            or nameof(LubeSakvaraMangd.Slutpris)
-            or nameof(LubeSakvaraMangd.EffectiveOffertpris)
-            or nameof(LubeSakvaraMangd.EffectiveSlutpris)
-            or nameof(LubeSakvaraMangd.PackageQuoteId)
-            or nameof(LubeSakvaraMangd.Differens)
-            or nameof(LubeSakvaraMangd.Antal))
-            RefreshSpecificationTotals();
-    }
-
-    private void TrackTotalRows()
-    {
-        _totalRows.Clear();
-        foreach (var row in SakvarorMangder)
-            _totalRows.Add(row);
-    }
-
-    private void FilterKalkyl()
-    {
-        FilteredKalkylPoster = string.IsNullOrWhiteSpace(FilterText)
-            ? new ObservableCollection<LubeKalkylPost>(KalkylPoster)
-            : new ObservableCollection<LubeKalkylPost>(KalkylPoster.Where(MatchesFilter));
-        OnPropertyChanged(nameof(SumTotalMaterial));
-        OnPropertyChanged(nameof(SumTotalTimmar));
-    }
-
     private void FilterSakvaror()
     {
-        FilteredSakvaror = string.IsNullOrWhiteSpace(FilterText)
+        FilteredSakvaror =
+            string.IsNullOrWhiteSpace(FilterText)
             ? new ObservableCollection<LubeSakvaraMangd>(SakvarorMangder)
             : new ObservableCollection<LubeSakvaraMangd>(SakvarorMangder.Where(MatchesFilter));
         RefreshSpecificationRows();
     }
-
-    private static string GetPackageQuoteReference(LubeSakvaraOffert quote)
-        => string.IsNullOrWhiteSpace(quote.Produktgrupp)
-            ? $"#{quote.Id}"
-            : $"{quote.Produktgrupp} (#{quote.Id})";
 
     private void RefreshSpecificationRows()
     {
@@ -648,7 +518,13 @@ public partial class LubeCalculationTabViewModel : ObservableObject
         RefreshPackageQuoteLabels();
         OnPropertyChanged(nameof(SumTotalMaterial));
         OnPropertyChanged(nameof(SumTotalTimmar));
-        OnPropertyChanged(nameof(Outcome));
+        OnPropertyChanged(nameof(SumTotalMaterial));
+                OnPropertyChanged(nameof(SumTotalTimmar));
+                OnPropertyChanged(nameof(Outcome));
+                OnPropertyChanged(nameof(SumPrisNto));
+                OnPropertyChanged(nameof(SumOffertpris));
+                OnPropertyChanged(nameof(SumSlutpris));
+                OnPropertyChanged(nameof(SumDifferens));
     }
 
     private static LubeCalculationSummary LoadSummary(string? json)

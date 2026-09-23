@@ -1,12 +1,58 @@
 using System;
+using System.Collections;
 using System.Linq;
 using System.Windows;
+using CommunityToolkit.Mvvm.Input;
+using UmiaPP.Models;
 using UmiaPP.Views;
 
 namespace UmiaPP.ViewModels;
 
 public partial class LubeCalculationTabViewModel
 {
+    [RelayCommand]
+    private async Task DeleteSelectedSakvaraRowsAsync(IList? selected)
+    {
+        var rows = (selected ?? SelectedSakvaror)
+            .OfType<LubeSakvaraMangd>()
+            .Where(row => !row.IsQuoteSummaryRow)
+            .Distinct()
+            .ToArray();
+        if (rows.Length == 0)
+        {
+            _dialogService.ShowMessage("Markera minst en rad att ta bort.", "Sakvaror");
+            return;
+        }
+
+        var names = string.Join("\n", rows.Take(8).Select(row =>
+            string.IsNullOrWhiteSpace(row.Produkt) ? row.Beteckning : row.Produkt));
+        var extra = rows.Length > 8 ? $"\n… och {rows.Length - 8} till" : string.Empty;
+        if (!_dialogService.Confirm(
+                $"Vill du ta bort {rows.Length} rad{(rows.Length == 1 ? "" : "er")}?\n\n{names}{extra}\n\nÄndringen kan inte ångras.",
+                "Ta bort rad"))
+            return;
+
+        try
+        {
+            var persistedIds = rows.Where(row => row.Id > 0).Select(row => row.Id).ToArray();
+            if (persistedIds.Length > 0)
+                await _dataService.Projects.DeleteSakvaraRowsAsync(Project.Id, persistedIds);
+
+            foreach (var row in rows)
+            {
+                SakvarorMangder.Remove(row);
+                Project.LubeSakvarorMangder.Remove(row);
+                SelectedSakvaror.Remove(row);
+            }
+
+            RefreshPackageQuoteLabels();
+        }
+        catch (Exception ex)
+        {
+            _dialogService.ShowError($"Kunde inte ta bort raderna:\n{ex.Message}", "Sakvaror");
+        }
+    }
+
     public void OpenPackageQuoteDetails(int quoteId)
     {
         var quote = PackageQuotes.FirstOrDefault(item => item.Id == quoteId && item.ProjectId == Project.Id);
@@ -91,5 +137,17 @@ public partial class LubeCalculationTabViewModel
         foreach (var summary in SpecificationRows.Where(row => row.IsQuoteSummaryRow))
             summary.PrisNto = summary.SummaryQuoteId is int id && amounts.TryGetValue(id, out var amount)
                 ? amount : 0;
+    }
+
+    private static string GetPackageQuoteReference(LubeSakvaraOffert quote)
+        => string.IsNullOrWhiteSpace(quote.Produktgrupp) ? quote.Leverantor : quote.Produktgrupp;
+
+    private void FilterKalkyl()
+    {
+        FilteredKalkylPoster = string.IsNullOrWhiteSpace(FilterText)
+            ? new System.Collections.ObjectModel.ObservableCollection<LubeKalkylPost>(KalkylPoster)
+            : new System.Collections.ObjectModel.ObservableCollection<LubeKalkylPost>(KalkylPoster.Where(p =>
+                (p.Benamning?.Contains(FilterText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (p.Kod?.Contains(FilterText, StringComparison.OrdinalIgnoreCase) ?? false)));
     }
 }

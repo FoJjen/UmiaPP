@@ -34,6 +34,7 @@ public interface IProjectRepository
     Task UpdateSakvaraPricesAsync(LubeSakvaraMangd item);
 
     Task SaveSakvaraSpecificationRowAsync(LubeSakvaraMangd item);
+    Task DeleteSakvaraRowsAsync(int projectId, IReadOnlyList<int> articleIds);
 
     Task SavePackageQuoteAsync(LubeSakvaraOffert quote, IReadOnlyList<int> articleIds);
 

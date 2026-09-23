@@ -26,35 +26,40 @@ public class LubeImportService : ILubeImportService
             try
             {
                 using var workbook = OpenWorkbook(filePath);
+                var warnings = new List<string>();
+                void Step(string name, Action action)
+                {
+                    try { action(); }
+                    catch (Exception stepEx)
+                    {
+                        warnings.Add($"{name}: {stepEx.Message}");
+                        System.Diagnostics.Debug.WriteLine($"[LubeImport] {name} misslyckades: {stepEx}");
+                    }
+                }
 
-                // 1. Kalkyl (Sammandrag, timmar, material och montage)
-                ReadKalkylSheet(workbook, result);
+                Step("Kalkyl", () => ReadKalkylSheet(workbook, result));
+                Step("Projektanpassning", () => ReadProjektanpassningSheet(workbook, result));
+                Step("SakvarorMängder", () => ReadSakvarorMangderSheet(workbook, result));
+                Step("SakvarorOfferter", () => ReadSakvarorOfferterSheet(workbook, result));
+                Step("SakvarorLeveranspris", () => ReadSakvarorLeveransprisSheet(workbook, result));
+                Step("SakvarorMontage", () => ReadSakvarorMontageSheet(workbook, result));
+                Step("EjMängdbaserade", () => ReadEjMangdbaseradeSheet(workbook, result));
 
-                // 2. Projektanpassning (Tidsjusteringar, procentpåslag, etableringstimmar)
-                ReadProjektanpassningSheet(workbook, result);
+                if (result.SakvarorLeveranspriser.Count == 0 && result.SakvarorMangder.Count == 0)
+                    Step("Sakvaror leveranspris (reserv)", () => ReadSakvarorLeveransprisByTitle(workbook, result));
 
-                // 3. SakvarorMängder (Beteckning, Dim1, Dim2, Antal/st)
-                ReadSakvarorMangderSheet(workbook, result);
-
-                // 4. SakvarorOfferter (Leverantörer, offererade priser)
-                ReadSakvarorOfferterSheet(workbook, result);
-
-                // 5. SakvarorLeveranspris (Produkt, leverantör, brutto/nettopris)
-                ReadSakvarorLeveransprisSheet(workbook, result);
-
-                // 6. SakvarorMontage (Kanalfläktar, galler, montage- och injusteringstimmar per enhet)
-                ReadSakvarorMontageSheet(workbook, result);
-
-                // 7. EjMängdbaserade (Postbaserade timmar och kostnader som OVK, CE-märkning, täthetsprovning)
-                ReadEjMangdbaseradeSheet(workbook, result);
+                if (result.SakvarorLeveranspriser.Count == 0 && result.SakvarorMangder.Count == 0)
+                    warnings.Add("SakvarorLeveranspris: inga rader hittades. Flikar: " + string.Join(", ", workbook.Worksheets.Select(w => w.Name)));
 
                 if (result.SakvarorLeveranspriser.Count == 0 && result.SakvarorMangder.Count > 0)
                     result.SakvarorLeveranspriser.AddRange(result.SakvarorMangder.Select(ToLeveranspris));
 
-                // 8. Beräkna / Extrahera Kalkylsammandrag (MONTAGE, INJUSTERING, LEVERANSER, TOTAL PRODUKTIONSKOSTNAD)
-                result.Summary = LubeSummaryParser.Parse(workbook);
+                Step("Kalkylsammandrag", () => result.Summary = LubeSummaryParser.Parse(workbook));
+                Step("Slå ihop dubbletter", () => MergeDuplicateSakvaror(result));
 
                 result.Success = true;
+                if (warnings.Count > 0)
+                    result.ErrorMessage = "Vissa flikar kunde inte läsas:\n" + string.Join("\n", warnings);
             }
             catch (Exception ex)
             {
@@ -64,6 +69,103 @@ public class LubeImportService : ILubeImportService
 
             return result;
         });
+    }
+
+    private static void ReadSakvarorLeveransprisByTitle(XLWorkbook workbook, LubeImportResult result)
+    {
+        foreach (var sheet in workbook.Worksheets)
+        {
+            var used = sheet.RangeUsed();
+            if (used == null) continue;
+            var titleRow = 0;
+            for (var row = 1; row <= Math.Min(used.LastRow().RowNumber(), 15); row++)
+            {
+                var text = string.Join(" ", Enumerable.Range(1, Math.Min(used.LastColumn().ColumnNumber(), 12))
+                    .Select(col => sheet.Cell(row, col).GetString()));
+                if (text.Contains("Sakvaror leveranspris", StringComparison.OrdinalIgnoreCase) ||
+                    text.Contains("SakvarorLeveranspris", StringComparison.OrdinalIgnoreCase))
+                {
+                    titleRow = row;
+                    break;
+                }
+            }
+            if (titleRow == 0) continue;
+
+            var headerRow = 0;
+            for (var row = titleRow; row <= titleRow + 8 && row <= used.LastRow().RowNumber(); row++)
+            {
+                var text = string.Join(" ", Enumerable.Range(1, Math.Min(used.LastColumn().ColumnNumber(), 12))
+                    .Select(col => sheet.Cell(row, col).GetString()));
+                if (text.Contains("Beteckning", StringComparison.OrdinalIgnoreCase))
+                {
+                    headerRow = row;
+                    break;
+                }
+            }
+            if (headerRow == 0) headerRow = titleRow + 6;
+
+            for (var row = headerRow + 1; row <= used.LastRow().RowNumber(); row++)
+            {
+                var beteckning = sheet.Cell(row, 3).GetString().Trim();
+                var produkt = sheet.Cell(row, 5).GetString().Trim();
+                if (string.IsNullOrWhiteSpace(beteckning) && string.IsNullOrWhiteSpace(produkt)) continue;
+                if (beteckning.Contains("Summa", StringComparison.OrdinalIgnoreCase)) break;
+
+                var item = new LubeSakvaraMangd
+                {
+                    Grupp = sheet.Cell(row, 2).GetString().Trim(),
+                    Beteckning = beteckning,
+                    Antal = sheet.Cell(row, 4).GetDouble(),
+                    Produkt = produkt,
+                    Produktkod = sheet.Cell(row, 6).GetString().Trim(),
+                    Leverantor = sheet.Cell(row, 7).GetString().Trim(),
+                    PrisBto = sheet.Cell(row, 8).GetDouble(),
+                    RabattSats = sheet.Cell(row, 9).GetDouble(),
+                    PrisNto = sheet.Cell(row, 10).GetDouble(),
+                    Offertpris = sheet.Cell(row, 11).GetDouble(),
+                    Enhet = "st"
+                };
+                result.SakvarorMangder.Add(item);
+            }
+            if (result.SakvarorMangder.Count > 0) return;
+        }
+    }
+
+    private static void MergeDuplicateSakvaror(LubeImportResult result)
+    {
+        if (result.SakvarorMangder.Count < 2) return;
+
+        var merged = new List<LubeSakvaraMangd>();
+        foreach (var item in result.SakvarorMangder)
+        {
+            var key = item.Beteckning?.Trim();
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                merged.Add(item);
+                continue;
+            }
+
+            var existing = merged.FirstOrDefault(row =>
+                string.Equals(row.Beteckning?.Trim(), key, StringComparison.OrdinalIgnoreCase));
+            if (existing == null)
+            {
+                merged.Add(item);
+                continue;
+            }
+
+            existing.Antal += item.Antal;
+            existing.PrisBto += item.PrisBto;
+            existing.PrisNto += item.PrisNto;
+            existing.Offertpris += item.Offertpris;
+            existing.Slutpris += item.Slutpris;
+            if (string.IsNullOrWhiteSpace(existing.Produkt)) existing.Produkt = item.Produkt;
+            if (string.IsNullOrWhiteSpace(existing.Produktkod)) existing.Produktkod = item.Produktkod;
+            if (string.IsNullOrWhiteSpace(existing.Leverantor)) existing.Leverantor = item.Leverantor;
+            if (string.IsNullOrWhiteSpace(existing.Grupp)) existing.Grupp = item.Grupp;
+        }
+
+        result.SakvarorMangder.Clear();
+        result.SakvarorMangder.AddRange(merged);
     }
 
     private static readonly object EncodingSync = new();
@@ -137,23 +239,31 @@ public class LubeImportService : ILubeImportService
             }
         }
 
-        reader.Reset();
-        var sheetIndex = 1;
-        do
+        try
         {
-            var rowIndex = 1;
-            while (reader.Read())
+            reader.Reset();
+            var sheetIndex = 1;
+            do
             {
-                for (var columnIndex = 0; columnIndex < reader.FieldCount; columnIndex++)
+                if (sheetIndex > workbook.Worksheets.Count) break;
+                var rowIndex = 1;
+                while (reader.Read())
                 {
-                    var format = reader.GetNumberFormatString(columnIndex);
-                    if (!string.IsNullOrEmpty(format))
-                        workbook.Worksheet(sheetIndex).Cell(rowIndex, columnIndex + 1).Style.NumberFormat.Format = format;
+                    for (var columnIndex = 0; columnIndex < reader.FieldCount; columnIndex++)
+                    {
+                        var format = reader.GetNumberFormatString(columnIndex);
+                        if (!string.IsNullOrEmpty(format))
+                            workbook.Worksheet(sheetIndex).Cell(rowIndex, columnIndex + 1).Style.NumberFormat.Format = format;
+                    }
+                    rowIndex++;
                 }
-                rowIndex++;
-            }
-            sheetIndex++;
-        } while (reader.NextResult());
+                sheetIndex++;
+            } while (reader.NextResult());
+        }
+        catch (Exception formatEx)
+        {
+            System.Diagnostics.Debug.WriteLine($"[LubeImport] Talformat kunde inte läsas: {formatEx.Message}");
+        }
 
         if (workbook.Worksheets.Count == 0)
             workbook.Worksheets.Add("Sheet1");

@@ -42,6 +42,9 @@ public class ProjectRepository : IProjectRepository
         saved.Produkt = item.Produkt;
         saved.Produktkod = item.Produktkod;
         saved.Leverantor = item.Leverantor;
+        saved.IsUserAdded = item.IsUserAdded || saved.IsUserAdded || item.Id == 0 ||
+            (string.Equals(item.Beteckning, "Ny rad", StringComparison.OrdinalIgnoreCase) &&
+             string.Equals(item.Produkt, "Ny rad", StringComparison.OrdinalIgnoreCase));
         saved.PrisBto = item.PrisBto;
         saved.RabattSats = item.RabattSats;
         saved.PrisNto = item.PrisNto;
@@ -56,7 +59,23 @@ public class ProjectRepository : IProjectRepository
         item.OriginalProduktkod = saved.OriginalProduktkod;
         item.OriginalLeverantor = saved.OriginalLeverantor;
         item.HasOriginalArticleIdentity = saved.HasOriginalArticleIdentity;
+        item.IsUserAdded = saved.IsUserAdded;
         item.NotifyArticleIdentityChanged();
+    }
+
+    public async Task DeleteSakvaraRowsAsync(int projectId, IReadOnlyList<int> articleIds)
+    {
+        var ids = articleIds.Where(id => id > 0).Distinct().ToArray();
+        if (ids.Length == 0) return;
+
+        await using var context = _contextFactory();
+        var rows = await context.LubeSakvarorMangder
+            .Where(row => row.ProjectId == projectId && ids.Contains(row.Id))
+            .ToListAsync();
+        if (rows.Count == 0) return;
+
+        context.LubeSakvarorMangder.RemoveRange(rows);
+        await context.SaveChangesAsync();
     }
 
     public async Task SavePackageQuoteAsync(LubeSakvaraOffert quote, IReadOnlyList<int> articleIds)
