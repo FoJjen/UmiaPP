@@ -107,6 +107,76 @@ public partial class PurchaseTabViewModel
             : $"{drawing.DrawingNumber}: {Articles.Count} artikelrader. Ändringar sparas när raden bekräftas.";
     }
 
+    [RelayCommand]
+    private async Task AddNipplesAsync()
+    {
+        var drawings = Drawings.Where(drawing => !drawing.IsInspectionList && !_unreadableLists.Contains(drawing)).ToList();
+        if (drawings.Count == 0)
+        {
+            _dialogService.ShowMessage("Det finns ingen komponentlista att uppdatera.", "Nipplar");
+            return;
+        }
+
+        var added = 0;
+        var updated = 0;
+        foreach (var drawing in drawings)
+        {
+            var rows = LoadListRows(drawing);
+            var channels = rows.Where(IsStraightVentilationChannel).ToList();
+            foreach (var channel in channels)
+            {
+                if (channel.PurchaseQuantity <= 1d) continue;
+                var quantity = (int)Math.Round(channel.PurchaseQuantity * 0.8d, MidpointRounding.AwayFromZero);
+                if (quantity <= 0) continue;
+
+                var nipple = rows.FirstOrDefault(row =>
+                    row.Category.Equals("Kanaler", StringComparison.OrdinalIgnoreCase) &&
+                    row.Type.Equals("Nippel", StringComparison.OrdinalIgnoreCase) &&
+                    row.Dimension.Equals(channel.Dimension, StringComparison.OrdinalIgnoreCase));
+                if (nipple == null)
+                {
+                    rows.Add(new PurchaseArticle
+                    {
+                        Category = "Kanaler",
+                        Type = "Nippel",
+                        Dimension = channel.Dimension,
+                        Quantity = quantity,
+                        Unit = "st"
+                    });
+                    added++;
+                }
+                else
+                {
+                    nipple.Quantity = quantity;
+                    nipple.Unit = "st";
+                    updated++;
+                }
+            }
+            drawing.PurchaseItemsJson = JsonSerializer.Serialize(rows);
+        }
+
+        if (added == 0 && updated == 0)
+        {
+            _dialogService.ShowMessage("Inga raka ventilationskanaler med inköpsantal hittades.", "Nipplar");
+            return;
+        }
+
+        try
+        {
+            await _dataService.Projects.SavePurchaseListsAsync(Project.Id, drawings.Select(drawing => Snapshot(drawing, LoadListRows(drawing))).ToList());
+            SelectPurchaseList(SelectedDrawing);
+            _dialogService.ShowMessage($"Nipplar klara: {added} nya och {updated} uppdaterade.", "Nipplar");
+        }
+        catch (Exception ex)
+        {
+            _dialogService.ShowError($"Kunde inte spara nipplarna:\n{ex.Message}", "Nipplar");
+        }
+    }
+
+    private static bool IsStraightVentilationChannel(PurchaseArticle row) =>
+        row.Type.Contains("Raka", StringComparison.OrdinalIgnoreCase) &&
+        row.Type.Contains("ventilationskanal", StringComparison.OrdinalIgnoreCase);
+
     partial void OnCategoryFilterChanged(string value)
     {
         TypeFilter = AllFilter;

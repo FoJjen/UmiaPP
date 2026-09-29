@@ -19,6 +19,7 @@
         <DockPanel Margin="0,0,0,10">
             <StackPanel DockPanel.Dock="Right">
                 <Button Content="Exportera listan" Command="{Binding ExportListCommand}" Style="{StaticResource AccentButton}"/>
+                <Button Content="Exportera alla listor" Margin="0,8,0,0" Command="{Binding ExportAllListsCommand}" Style="{StaticResource SecondaryButton}"/>
                 <Button Content="Ny kontrollpunkt" Margin="0,8,0,0" Click="AddPoint_Click" Style="{StaticResource SecondaryButton}"/>
             </StackPanel>
             <StackPanel>
@@ -30,7 +31,8 @@
             <TextBlock Text="Listnamn" Margin="0,0,0,4"/>
             <WrapPanel>
                 <TextBox Width="240" Margin="0,0,8,0" Text="{Binding NewListName, UpdateSourceTrigger=PropertyChanged}" ToolTip="Namn på ny egenkontrollista"/>
-                <Button Content="Skapa lista" Command="{Binding CreateListCommand}" Style="{StaticResource AccentButton}"/>
+                <Button Content="Skapa lista" Command="{Binding CreateListCommand}" Style="{StaticResource AccentButton}" Margin="0,0,8,0"/>
+                <Button Content="Hämta ritningar från Inköp" Command="{Binding ImportPurchaseDrawingsCommand}" Style="{StaticResource SecondaryButton}"/>
             </WrapPanel>
         </StackPanel>
         <Grid Grid.Row="2">

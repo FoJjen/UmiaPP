@@ -19,6 +19,17 @@ internal static class InspectionWorkbookExporter
         {
             using var workbook = new XLWorkbook();
             var sheet = workbook.Worksheets.Add("Egenkontroll");
+            workbook.SaveAs(filePath);
+        });
+    }
+
+    private static void WriteInspectionSheet(
+        IXLWorksheet sheet,
+        Project project,
+        Drawing drawing,
+        DrawingInspection header,
+        IReadOnlyList<DrawingInspectionItem> items)
+    {
             var workOrder = DeliveryMarking.Format(project.ProjectNumber, project.Discipline);
             var discipline = DeliveryMarking.ShortName(project.Discipline);
             var date = header.Date == default ? DateTime.Today : header.Date;
@@ -122,6 +133,31 @@ internal static class InspectionWorkbookExporter
             sheet.PageSetup.PageOrientation = XLPageOrientation.Portrait;
             sheet.PageSetup.PaperSize = XLPaperSize.A4Paper;
             sheet.PageSetup.FitToPages(1, 0);
+    }
+
+    public static Task ExportAllAsync(
+        Project project,
+        IReadOnlyList<(Drawing Drawing, DrawingInspection Header, IReadOnlyList<DrawingInspectionItem> Items)> lists,
+        string filePath)
+    {
+        return Task.Run(() =>
+        {
+            using var workbook = new XLWorkbook();
+            var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var list in lists)
+            {
+                var name = list.Drawing.DrawingNumber;
+                if (string.IsNullOrWhiteSpace(name)) name = "Lista";
+                name = name.Length > 31 ? name[..31] : name;
+                var unique = name;
+                var suffix = 2;
+                while (!usedNames.Add(unique))
+                    unique = $"{name[..Math.Min(name.Length, 28)]}-{suffix++}";
+                var sheet = workbook.Worksheets.Add(unique);
+                WriteInspectionSheet(sheet, project, list.Drawing, list.Header, list.Items);
+            }
+            if (workbook.Worksheets.Count == 0)
+                workbook.Worksheets.Add("Egenkontroll");
             workbook.SaveAs(filePath);
         });
     }

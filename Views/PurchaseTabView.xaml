@@ -75,7 +75,8 @@
         <WrapPanel Grid.Row="3" Margin="0,10,0,10">
             <Button Content="Koppla PDF" Command="{Binding LinkListPdfCommand}" IsEnabled="{Binding CanEditSelectedList}" Style="{StaticResource SecondaryButton}" Margin="0,0,8,0"/>
             <Button Content="Öppna PDF" Command="{Binding OpenDrawingFileCommand}" CommandParameter="{Binding SelectedDrawing}" IsEnabled="{Binding CanEditSelectedList}" Style="{StaticResource SecondaryButton}" Margin="0,0,16,0"/>
-   <Button Content="Ny artikel" Command="{Binding AddPurchaseArticleCommand}" IsEnabled="{Binding CanEditSelectedList}" Style="{StaticResource AccentButton}" Margin="0,0,16,0"/>
+   <Button Content="Ny artikel" Command="{Binding AddPurchaseArticleCommand}" IsEnabled="{Binding CanEditSelectedList}" Style="{StaticResource AccentButton}" Margin="0,0,8,0"/>
+   <Button Content="Lägg till nipplar" Command="{Binding AddNipplesCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,16,0" ToolTip="Skapar nipplar från raka ventilationskanaler: inköpsantal × 0,8, avrundat till närmaste heltal."/>
    <Button Content="Exportera visad lista" Command="{Binding ExportSelectedListCommand}" IsEnabled="{Binding CanEditSelectedList}" Style="{StaticResource SecondaryButton}" Margin="0,0,16,0"/>
    <Button Content="Exportera alla listor" Command="{Binding ExportAllListsCommand}" Style="{StaticResource SecondaryButton}" Margin="0,0,16,0" ToolTip="Exporterar alla projektets listor: sammanfattning först, sedan ett blad per ritning eller lista."/>
             <TextBlock Text="Kategori" VerticalAlignment="Center" Margin="0,0,6,0"/>

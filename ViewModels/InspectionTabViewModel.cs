@@ -133,6 +133,92 @@ public partial class InspectionTabViewModel : ObservableObject
     partial void OnSelectedDrawingChanged(Drawing? value) => _ = LoadChecklistAsync();
 
     [RelayCommand]
+    private async Task ImportPurchaseDrawingsAsync()
+    {
+        var existing = Drawings
+            .Select(drawing => drawing.DrawingNumber.Trim())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var sources = (Project.Drawings ?? [])
+            .Where(drawing => !drawing.IsInspectionList && !string.IsNullOrWhiteSpace(drawing.DrawingNumber))
+            .Where(drawing => !existing.Contains(drawing.DrawingNumber.Trim()))
+            .GroupBy(drawing => drawing.DrawingNumber.Trim(), StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
+            .ToList();
+        if (sources.Count == 0)
+        {
+            _dialogService.ShowMessage("Alla ritningar från Inköp finns redan i Egenkontroll.", "Egenkontroll");
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            foreach (var source in sources)
+            {
+                var drawing = new Drawing
+                {
+                    ProjectId = Project.Id,
+                    DrawingNumber = source.DrawingNumber.Trim(),
+                    SheetTitle = source.SheetTitle,
+                    Revision = string.IsNullOrWhiteSpace(source.Revision) ? "1" : source.Revision,
+                    Date = source.Date == default ? DateTime.Today : source.Date,
+                    FilePath = source.FilePath,
+                    IsInspectionList = true
+                };
+                var saved = await _dataService.Projects.AddDrawingAsync(drawing);
+                Project.Drawings.Add(saved);
+            }
+            RefreshLists();
+            Status = $"{sources.Count} ritningar hämtades från Inköp.";
+        }
+        catch (Exception ex)
+        {
+            _dialogService.ShowError($"Kunde inte hämta ritningarna:\n{ex.Message}", "Egenkontroll");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task ExportAllListsAsync()
+    {
+        if (Drawings.Count == 0)
+        {
+            _dialogService.ShowMessage("Det finns inga egenkontrollistor att exportera.", "Egenkontroll");
+            return;
+        }
+
+        var path = _dialogService.SaveFileDialog("xlsx", "Excel (*.xlsx)|*.xlsx", $"{Project.ProjectNumber}-egenkontroller.xlsx");
+        if (string.IsNullOrWhiteSpace(path)) return;
+
+        IsBusy = true;
+        try
+        {
+            var lists = new List<(Drawing Drawing, DrawingInspection Header, IReadOnlyList<DrawingInspectionItem> Items)>();
+            foreach (var drawing in Drawings)
+            {
+                var header = await _dataService.Projects.GetDrawingInspectionAsync(drawing.Id);
+                var items = (await _dataService.Projects.GetDrawingInspectionItemsAsync(drawing.Id))
+                    .OrderBy(item => item.SortOrder)
+                    .ToList();
+                lists.Add((drawing, header, items));
+            }
+            await InspectionWorkbookExporter.ExportAllAsync(Project, lists, path);
+            Status = $"{lists.Count} egenkontrollistor exporterades.";
+        }
+        catch (Exception ex)
+        {
+            _dialogService.ShowError($"Kunde inte exportera listorna:\n{ex.Message}", "Egenkontroll");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
     private async Task MovePointUpAsync(InspectionTemplateChoice? choice) => await MovePointAsync(choice, -1);
 
     [RelayCommand]
