@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <ApplicationIcon>Resources\icon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,6 +15,10 @@
     <Content Include=".validation\AtaChecks.cs.txt" />
     <Content Include=".validation\PackageQuoteChecks.cs.txt" />
     <Content Include=".validation\VentilationImportChecks.cs.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\icon.ico" />
   </ItemGroup>
 
 

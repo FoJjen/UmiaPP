@@ -86,18 +86,25 @@ public partial class PurchaseTabViewModel
 
     private void SelectPurchaseList(Drawing? drawing, List<PurchaseArticle>? combinedRows = null)
     {
+        var previousCategory = CategoryFilter;
+        var previousType = TypeFilter;
+
         IsCombinedSelection = combinedRows != null;
         Articles = new ObservableCollection<PurchaseArticle>(combinedRows ?? (drawing == null ? [] : LoadListRows(drawing)));
         SelectedArticle = null;
-        CategoryFilter = AllFilter;
-        TypeFilter = AllFilter;
         ArticleView = CollectionViewSource.GetDefaultView(Articles);
         ArticleView.Filter = value => value is PurchaseArticle row &&
             (CategoryFilter == AllFilter || row.Category == CategoryFilter) &&
             (TypeFilter == AllFilter || row.Type == TypeFilter);
+        ArticleView.SortDescriptions.Clear();
         ArticleView.SortDescriptions.Add(new SortDescription(nameof(PurchaseArticle.Category), ListSortDirection.Ascending));
         ArticleView.SortDescriptions.Add(new SortDescription(nameof(PurchaseArticle.Type), ListSortDirection.Ascending));
         RefreshArticleFilters();
+
+        CategoryFilter = Categories.Contains(previousCategory) ? previousCategory : AllFilter;
+        TypeFilter = ArticleTypes.Contains(previousType) ? previousType : AllFilter;
+        ArticleView.Refresh();
+
         LoadedPdfPath = string.Empty;
         LoadedPdfUri = null;
         if (drawing != null && !string.IsNullOrWhiteSpace(drawing.FilePath) && File.Exists(drawing.FilePath))

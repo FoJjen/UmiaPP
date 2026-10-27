@@ -33,8 +33,12 @@
                 <StackPanel>
                     <TextBlock Text="%" Style="{StaticResource KpiIcon}"/>
                     <TextBlock Text="{DynamicResource CurrentTg}" FontSize="18" FontWeight="SemiBold"/>
-                    <TextBlock Text="{Binding CurrentTg, StringFormat={}{0:N1} %, TargetNullValue=—}" FontSize="32" FontWeight="SemiBold" Margin="0,6,0,12">
+                    <TextBlock FontSize="32" FontWeight="SemiBold" Margin="0,6,0,12" TextWrapping="Wrap">
                         <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/><Style.Triggers><DataTrigger Binding="{Binding IsNegativeMargin}" Value="True"><Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                        <Run Text="{Binding CurrentTg, Mode=OneWay, StringFormat={}{0:N1} %, TargetNullValue=—}"/>
+                        <Run Text="{Binding ProjectedTg, Mode=OneWay, StringFormat={} ({0:N1} %), TargetNullValue=' (—)'}"
+                             Foreground="{DynamicResource TextSecondaryBrush}"
+                             ToolTip="Beräknat TG med samtliga redovisade ÄTA, även ej godkända eller ej fakturerade. Samma produktionskostnad används. Redovisad ÄTA ersätter godkänd ÄTA i intäkten; beloppen dubbelräknas inte."/>
                     </TextBlock>
                     <ProgressBar Value="{Binding MarginGaugeValue, Mode=OneWay}" AutomationProperties.Name="{DynamicResource CurrentTg}" ToolTip="{Binding MarginGaugeDescription}">
                         <ProgressBar.Style><Style TargetType="ProgressBar" BasedOn="{StaticResource MarginGauge}"><Style.Triggers><DataTrigger Binding="{Binding HasMargin}" Value="False"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger><DataTrigger Binding="{Binding IsNegativeMargin}" Value="True"><Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/></DataTrigger></Style.Triggers></Style></ProgressBar.Style>

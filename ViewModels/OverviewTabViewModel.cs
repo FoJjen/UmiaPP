@@ -43,6 +43,9 @@ public partial class OverviewTabViewModel : ObservableObject
     [ObservableProperty]
     private decimal? _approvedAtaRevenue;
 
+    [ObservableProperty]
+    private decimal? _projectedTg;
+
     public void SetOutcomeProvider(Func<AtaOutcome> provider)
     {
         _outcomeProvider = provider;
@@ -58,6 +61,10 @@ public partial class OverviewTabViewModel : ObservableObject
         ProductionCost = outcome.Cost;
         CurrentProfit = outcome.Profit;
         CurrentTg = outcome.Margin;
+        var projectedRevenue = outcome.BaseRevenue + outcome.Totals.ReportedAmount;
+        ProjectedTg = projectedRevenue is > 0 && outcome.Cost.HasValue
+            ? (projectedRevenue.Value - outcome.Cost.Value) / projectedRevenue.Value * 100m
+            : null;
     }
 
     [ObservableProperty]

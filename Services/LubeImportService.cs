@@ -45,8 +45,7 @@ public class LubeImportService : ILubeImportService
                 Step("SakvarorMontage", () => ReadSakvarorMontageSheet(workbook, result));
                 Step("EjMängdbaserade", () => ReadEjMangdbaseradeSheet(workbook, result));
 
-                if (result.SakvarorLeveranspriser.Count == 0 && result.SakvarorMangder.Count == 0)
-                    Step("Sakvaror leveranspris (reserv)", () => ReadSakvarorLeveransprisByTitle(workbook, result));
+                Step("Sakvaror leveranspris (rubriker)", () => ReadSakvarorLeveransprisByTitle(workbook, result));
 
                 if (result.SakvarorLeveranspriser.Count == 0 && result.SakvarorMangder.Count == 0)
                     warnings.Add("SakvarorLeveranspris: inga rader hittades. Flikar: " + string.Join(", ", workbook.Worksheets.Select(w => w.Name)));
@@ -77,57 +76,68 @@ public class LubeImportService : ILubeImportService
         {
             var used = sheet.RangeUsed();
             if (used == null) continue;
-            var titleRow = 0;
-            for (var row = 1; row <= Math.Min(used.LastRow().RowNumber(), 15); row++)
-            {
-                var text = string.Join(" ", Enumerable.Range(1, Math.Min(used.LastColumn().ColumnNumber(), 12))
-                    .Select(col => sheet.Cell(row, col).GetString()));
-                if (text.Contains("Sakvaror leveranspris", StringComparison.OrdinalIgnoreCase) ||
-                    text.Contains("SakvarorLeveranspris", StringComparison.OrdinalIgnoreCase))
-                {
-                    titleRow = row;
-                    break;
-                }
-            }
-            if (titleRow == 0) continue;
+            if (!sheet.Name.Replace(" ", string.Empty).Equals("SakvarorLeveranspris", StringComparison.OrdinalIgnoreCase))
+                continue;
 
+            var columns = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
             var headerRow = 0;
-            for (var row = titleRow; row <= titleRow + 8 && row <= used.LastRow().RowNumber(); row++)
+            for (var row = 1; row <= Math.Min(used.LastRow().RowNumber(), 20); row++)
             {
-                var text = string.Join(" ", Enumerable.Range(1, Math.Min(used.LastColumn().ColumnNumber(), 12))
-                    .Select(col => sheet.Cell(row, col).GetString()));
-                if (text.Contains("Beteckning", StringComparison.OrdinalIgnoreCase))
+                columns.Clear();
+                for (var col = 1; col <= used.LastColumn().ColumnNumber(); col++)
+                {
+                    var label = sheet.Cell(row, col).GetString().Trim();
+                    if (!string.IsNullOrWhiteSpace(label)) columns[label] = col;
+                }
+                if (columns.Keys.Any(label => label.StartsWith("Beteckning", StringComparison.OrdinalIgnoreCase)) &&
+                    columns.ContainsKey("Antal"))
                 {
                     headerRow = row;
                     break;
                 }
             }
-            if (headerRow == 0) headerRow = titleRow + 6;
+            if (headerRow == 0) throw new InvalidDataException($"Fliken {sheet.Name} saknar rubrikerna Beteckning och Antal.");
+
+            var designationColumn = columns.First(pair => pair.Key.StartsWith("Beteckning", StringComparison.OrdinalIgnoreCase)).Value;
+            string Text(int row, string label) => columns.TryGetValue(label, out var col)
+                ? sheet.Cell(row, col).GetString().Trim() : string.Empty;
+            double Number(int row, string label)
+            {
+                if (!columns.TryGetValue(label, out var col)) return 0;
+                var cell = sheet.Cell(row, col);
+                if (cell.IsEmpty() || string.IsNullOrWhiteSpace(cell.GetString())) return 0;
+                if (cell.TryGetValue<double>(out var number)) return number;
+                throw new InvalidDataException($"{sheet.Name}, rad {row}, {label}: ogiltigt tal '{cell.GetString()}'.");
+            }
+
+            var parsed = new List<LubeSakvaraMangd>();
 
             for (var row = headerRow + 1; row <= used.LastRow().RowNumber(); row++)
             {
-                var beteckning = sheet.Cell(row, 3).GetString().Trim();
-                var produkt = sheet.Cell(row, 5).GetString().Trim();
-                if (string.IsNullOrWhiteSpace(beteckning) && string.IsNullOrWhiteSpace(produkt)) continue;
-                if (beteckning.Contains("Summa", StringComparison.OrdinalIgnoreCase)) break;
+                var beteckning = sheet.Cell(row, designationColumn).GetString().Trim();
+                if (string.IsNullOrWhiteSpace(beteckning)) continue;
+                if (beteckning.StartsWith("Summa", StringComparison.OrdinalIgnoreCase)) continue;
 
                 var item = new LubeSakvaraMangd
                 {
-                    Grupp = sheet.Cell(row, 2).GetString().Trim(),
+                    Grupp = Text(row, "Grupp"),
                     Beteckning = beteckning,
-                    Antal = sheet.Cell(row, 4).GetDouble(),
-                    Produkt = produkt,
-                    Produktkod = sheet.Cell(row, 6).GetString().Trim(),
-                    Leverantor = sheet.Cell(row, 7).GetString().Trim(),
-                    PrisBto = sheet.Cell(row, 8).GetDouble(),
-                    RabattSats = sheet.Cell(row, 9).GetDouble(),
-                    PrisNto = sheet.Cell(row, 10).GetDouble(),
-                    Offertpris = sheet.Cell(row, 11).GetDouble(),
+                    Antal = Number(row, "Antal"),
+                    Produkt = Text(row, "Produkt"),
+                    Produktkod = Text(row, "Produktkod"),
+                    Leverantor = Text(row, "Leverantör"),
+                    PrisBto = Number(row, "Pris bto"),
+                    RabattSats = Number(row, "%"),
+                    PrisNto = Number(row, "Pris nto"),
+                    Offertpris = Number(row, "Offertpris"),
                     Enhet = "st"
                 };
-                result.SakvarorMangder.Add(item);
+                parsed.Add(item);
             }
-            if (result.SakvarorMangder.Count > 0) return;
+            if (parsed.Count == 0) throw new InvalidDataException($"Inga artikelrader hittades i {sheet.Name}.");
+            result.SakvarorMangder.Clear();
+            result.SakvarorMangder.AddRange(parsed);
+            return;
         }
     }
 
@@ -146,7 +156,9 @@ public class LubeImportService : ILubeImportService
             }
 
             var existing = merged.FirstOrDefault(row =>
-                string.Equals(row.Beteckning?.Trim(), key, StringComparison.OrdinalIgnoreCase));
+                string.Equals(row.Beteckning?.Trim(), key, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(row.Dim1?.Trim(), item.Dim1?.Trim(), StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(row.Dim2?.Trim(), item.Dim2?.Trim(), StringComparison.OrdinalIgnoreCase));
             if (existing == null)
             {
                 merged.Add(item);
@@ -154,7 +166,6 @@ public class LubeImportService : ILubeImportService
             }
 
             existing.Antal += item.Antal;
-            existing.PrisBto += item.PrisBto;
             existing.PrisNto += item.PrisNto;
             existing.Offertpris += item.Offertpris;
             existing.Slutpris += item.Slutpris;

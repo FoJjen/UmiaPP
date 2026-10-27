@@ -8,6 +8,7 @@
         xmlns:views="clr-namespace:UmiaPP.Views"
         mc:Ignorable="d"
         Title="{Binding WindowTitle}" Height="820" Width="1360" MinHeight="650" MinWidth="1000"
+        Icon="Resources/icon.ico"
         WindowStartupLocation="CenterScreen" Background="{DynamicResource BackgroundBrush}"
         FontFamily="Segoe UI Variable, Segoe UI" UseLayoutRounding="True">
     <Window.Resources>

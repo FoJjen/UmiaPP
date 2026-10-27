@@ -1,3 +1,4 @@
+using System.IO;
 using ClosedXML.Excel;
 using UmiaPP.Models;
 
@@ -26,7 +27,19 @@ internal static class PurchaseWorkbookExporter
                     list.Articles.Select(article => (list.Name, Article: article)));
             }
 
-            workbook.SaveAs(filePath);
+            try
+            {
+                workbook.SaveAs(filePath);
+            }
+            catch (IOException ex) when (
+                ex.HResult == unchecked((int)0x80070020) ||
+                ex.HResult == unchecked((int)0x80070021))
+            {
+                throw new IOException(
+                    $"Filen används eller är låst och kunde inte sparas:\n{filePath}\n\n" +
+                    "Stäng filen i Excel eller det program som använder den och försök igen. " +
+                    "Du kan också välja ett annat filnamn.", ex);
+            }
         });
     }
 

@@ -5,7 +5,6 @@ using System.Windows;
 using CommunityToolkit.Mvvm.Input;
 using UmiaPP.Models;
 using UmiaPP.Views;
-using UmiaPP.Models;
 using UmiaPP.Data;
 
 namespace UmiaPP.ViewModels;
